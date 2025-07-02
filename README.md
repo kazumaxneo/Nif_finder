@@ -1,10 +1,3 @@
 # Nif_finder
 
-#example code  
-ls *faa > list  
-cat list |while read line  
-do  
-python Nif_finderv0.13.py --query_file $line --output_prefix ${line%.faa}_result --cpu 8  \
---reference_files nifH/nifHclassification nifD/nifDclassification nifK/nifKclassification nifE/nifEclassification nifN/nifNclassification nifB/nifBclassification  \
- --target_files nifH/proteins_hmm nifD/proteins_hmm nifK/proteins_hmm nifE/proteins_hmm nifN/proteins_hmm nifB/proteins_hmm  
-done
+python Nif_finderv0.18.py -q GCA_001904675.1_ASM190467v1_genomic.faa -o out -c 8 -r nif*/nif*classification -t nif*/proteins_hmm --save_fasta
