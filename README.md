@@ -54,19 +54,6 @@ python Nif_finderv0_23.py \
   --min_orf_len 30 -p -s
 ```
 
-### Directory of protein FASTAs (`-d`)
-
-Processes all `.faa` files in a directory and writes a gene-status matrix.
-
-```bash
-python Nif_finderv0_23.py \
-  -d protein_test/ \
-  -t nifH/proteins_hmm nifD/proteins_hmm nifK/proteins_hmm \
-     nifE/proteins_hmm nifN/proteins_hmm nifB/proteins_hmm \
-  -r nifH/nifHclassification nifD/nifDclassification nifK/nifKclassification \
-     nifE/nifEclassification nifN/nifNclassification nifB/nifBclassification \
-  -m nif_matrix.tsv -p -s
-```
 
 ---
 
