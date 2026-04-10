@@ -155,14 +155,14 @@ The vegetative cell genome of  *Calothrix* sp. NIES-4101 encodes 13 highly fragm
 ### Detection Summary
 Nif-Finder was used to identify and annotate highly fragmented nif genes in the NIES-4101 genome.
 
-3 file created.
+3 files are created.
 <p align="center"><img src="result4.png" alt="workflow" width="1100"></p>  
 
-1. Calothrix_sp.NIES-4101_nifHDKENB.faa (predicted nifHDKENB sequence: when -s option is used)
+1. Calothrix_sp.NIES-4101_nifHDKENB.faa (predicted nifHDKENB sequence: when -s flag was set)
 <p align="center"><img src="result5.png" alt="workflow" width="1100"></p>
 2. Calothrix_sp.NIES-4101_results.txt (-log E-value and related information of all predicted nif homologue sequence)
 <p align="center"><img src="result6.png" alt="workflow" width="1100"></p>
-3. Calothrix_sp.NIES-4101_results_scatter.png (when -p option is used)
+3. Calothrix_sp.NIES-4101_results_scatter.png (when -p flag was set)
 <p align="center"><img src="result2.png" alt="workflow" width="1100"></p>
 
 ### *nifH* Fragment Analysis
