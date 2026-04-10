@@ -147,9 +147,6 @@ This analysis is based on the following study:
 **[Complete Genome Sequence of the Heterocystous Cyanobacterium *Calothrix* sp. NIES-4101](https://doi.org/10.1093/pcp/pcae011)**  
 Kazuma Uesaka & Mari Banba et al., *Plant and Cell Physiology*, 2024. DOI: [10.1093/pcp/pcae011](https://doi.org/10.1093/pcp/pcae011)
 
----
-
-## Genome Organization & Nitrogenase Expression
 The vegetative cell genome of  *Calothrix* sp. NIES-4101 encodes 13 highly fragmented *nifHDKB* segments and complete *nifEN* genes (upper). These fragmented *nif* genes are reconstructed in the heterocyst to express functional nitrogenase (lower).
 
 <p align="center"><img src="result1.png" alt="workflow" width="1100"></p>
