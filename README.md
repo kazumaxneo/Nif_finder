@@ -141,9 +141,6 @@ A query is classified as `nif operon` when **two or more distinct *nif* genes** 
 
 # Test Run Result: *Calothrix* sp. NIES-4101
 
-## Reference
-This analysis is based on the following study:
-
 **[Complete Genome Sequence of the Heterocystous Cyanobacterium *Calothrix* sp. NIES-4101](https://doi.org/10.1093/pcp/pcae011)**  
 Kazuma Uesaka & Mari Banba et al., *Plant and Cell Physiology*, 2024. DOI: [10.1093/pcp/pcae011](https://doi.org/10.1093/pcp/pcae011)
 
