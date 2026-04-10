@@ -157,8 +157,11 @@ Nif-Finder was used to identify and annotate highly fragmented nif genes in the 
 
 3 file created.
 <p align="center"><img src="result4.png" alt="workflow" width="1100"></p>
-
-Calothrix_sp.NIES-4101_results_scatter.png
+Calothrix_sp.NIES-4101_nifHDKENB.faa (predicted nifHDKENB sequence: when -s option is used)
+<p align="center"><img src="result5.png" alt="workflow" width="1100"></p>
+Calothrix_sp.NIES-4101_results.txt (-log E-value and related information of all predicted nif homologue sequence)
+<p align="center"><img src="result6.png" alt="workflow" width="1100"></p>
+Calothrix_sp.NIES-4101_results_scatter.png (when -p option is used)
 <p align="center"><img src="result2.png" alt="workflow" width="1100"></p>
 
 ### *nifH* Fragment Analysis
