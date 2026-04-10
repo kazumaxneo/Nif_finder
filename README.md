@@ -150,7 +150,7 @@ Kazuma Uesaka & Mari Banba et al., *Plant and Cell Physiology*, 2024. DOI: [10.1
 ---
 
 ## Genome Organization & Nitrogenase Expression
-The vegetative cell genome encodes 13 highly fragmented *nifHDKB* segments and complete *nifEN* genes (upper). These fragmented *nif* genes are reconstructed in the heterocyst to express functional nitrogenase (lower).
+The vegetative cell genome of  *Calothrix* sp. NIES-4101 encodes 13 highly fragmented *nifHDKB* segments and complete *nifEN* genes (upper). These fragmented *nif* genes are reconstructed in the heterocyst to express functional nitrogenase (lower).
 
 <p align="center"><img src="result1.png" alt="workflow" width="1100"></p>
 
@@ -159,14 +159,14 @@ The vegetative cell genome encodes 13 highly fragmented *nifHDKB* segments and c
 ## Nif-Finder Prediction Results
 
 ### Detection Summary
-Nif-Finder was used to identify and annotate nitrogen-fixing gene clusters in the NIES-4101 genome.
+Nif-Finder was used to identify and annotate highly fragmented nif genes in the NIES-4101 genome.
 
 <p align="center"><img src="result2.png" alt="workflow" width="1100"></p>
 
 ### *nifH* Fragment Analysis
 *Calothrix* sp. NIES-4101 encodes two copies of the *nifH* gene:
-- **nifH2**: A complete/intact copy (Full-length hit).
-- **nifH1**: A fragmented copy split into 4 parts.
+- **nifH2**: A complete/intact copy (full-length; encoded in a genomic region that differs by 2.0 Mb in length from other nif genes).
+- **nifH1**: A fragmented copy split into 4 parts (reconstructed in heterocyst cell).
 
 Nif-Finder successfully detected the full-length *nifH2* and 3 out of 4 *nifH1* fragments based on the alignment threshold (240 aa).
 
