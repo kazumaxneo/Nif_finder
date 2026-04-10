@@ -141,6 +141,9 @@ A query is classified as `nif operon` when **two or more distinct *nif* genes** 
 
 ## Test run result
 <p align="center"><img src="result1.png" alt="workflow" width="1100"></p>
+azuma Uesaka & Mari Banba et al, 2024
+Complete Genome Sequence of the Heterocystous Cyanobacterium Calothrix sp. NIES-4101
+Plant and Cell Physiology, 2024. DOI: 10.1093/pcp/pcae011
 
 <p align="center"><img src="result2.png" alt="workflow" width="1100"></p>
 
