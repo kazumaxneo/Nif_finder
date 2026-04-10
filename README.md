@@ -139,16 +139,38 @@ A query is classified as `nif operon` when **two or more distinct *nif* genes** 
 
 ---
 
-## Test run result
+# Test Run Result: *Calothrix* sp. NIES-4101
+
+## Reference
+This analysis is based on the following study:
+
+**[Complete Genome Sequence of the Heterocystous Cyanobacterium *Calothrix* sp. NIES-4101](https://doi.org/10.1093/pcp/pcae011)**  
+Kazuma Uesaka & Mari Banba et al., *Plant and Cell Physiology*, 2024. DOI: [10.1093/pcp/pcae011](https://doi.org/10.1093/pcp/pcae011)
+
+---
+
+## Genome Organization & Nitrogenase Expression
+The vegetative cell genome encodes 13 highly fragmented *nifHDKB* segments and complete *nifEN* genes (upper). These fragmented *nif* genes are reconstructed in the heterocyst to express functional nitrogenase (lower).
+
 <p align="center"><img src="result1.png" alt="workflow" width="1100"></p>
-Kazuma Uesaka & Mari Banba et al, 2024
-Complete Genome Sequence of the Heterocystous Cyanobacterium Calothrix sp. NIES-4101
-Plant and Cell Physiology, 2024. DOI: 10.1093/pcp/pcae011  
-### Nif-Finder nif prediction result (NIES4101).
+
+---
+
+## Nif-Finder Prediction Results
+
+### Detection Summary
+Nif-Finder was used to identify and annotate nitrogen-fixing gene clusters in the NIES-4101 genome.
+
 <p align="center"><img src="result2.png" alt="workflow" width="1100"></p>
 
-<p align="center"><img src="result3.png" alt="workflow" width="1100"></p>
+### *nifH* Fragment Analysis
+*Calothrix* sp. NIES-4101 encodes two copies of the *nifH* gene:
+- **nifH2**: A complete/intact copy (Full-length hit).
+- **nifH1**: A fragmented copy split into 4 parts.
 
+Nif-Finder successfully detected the full-length *nifH2* and 3 out of 4 *nifH1* fragments based on the alignment threshold (240 aa).
+
+<p align="center"><img src="result3.png" alt="workflow" width="1100"></p>
 ## Version history
 
 | Version | Changes |
