@@ -139,6 +139,8 @@ A query is classified as `nif operon` when **two or more distinct *nif* genes** 
 
 ---
 
+## Test run result
+<p align="center"><img src="result1.png" alt="workflow" width="800"></p>
 
 
 ## Version history
