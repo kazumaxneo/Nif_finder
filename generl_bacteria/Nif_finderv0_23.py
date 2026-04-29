@@ -3,6 +3,7 @@ import subprocess
 import math
 import csv
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from math import sqrt
 import argparse
 import glob
@@ -36,6 +37,7 @@ NIF_GENES = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"]
 
 DEFAULT_E_VALUE = 1e-10
 DEFAULT_CPU = 8
+DEFAULT_JOBS = 1
 DEFAULT_LOG_E_VALUE_MIN = 250
 DEFAULT_MIN_ORF_LEN = 10  # 6フレーム翻訳後に保持するORFの最小アミノ酸長
 
@@ -225,6 +227,69 @@ def convert_to_single_tab(input_file, reference_data, scale_params, query_length
         print(f"HMMscan output file not found: {input_file}")
         raise
     return records
+
+
+# ============================================================
+# profileごとのHMMscan実行
+# ============================================================
+
+def _scan_single_profile(query_file, target_file, reference_data, scale_params, query_lengths, cpu):
+    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp:
+        tmp_out = tmp.name
+    try:
+        run_hmmscan(query_file, target_file, tmp_out, cpu=cpu)
+        return convert_to_single_tab(tmp_out, reference_data, scale_params, query_lengths)
+    finally:
+        if os.path.exists(tmp_out):
+            os.remove(tmp_out)
+
+
+def run_profile_scans(query_file, profile_files, references_loaded, query_lengths, cpu, jobs=DEFAULT_JOBS):
+    """
+    profileごとのhmmscanを実行し、既定では従来どおり逐次処理する。
+    jobs > 1 の場合のみ、独立したprofile scanを並列実行する。
+
+    --cpu は総CPU予算として扱い、並列scan数で割って各hmmscanに渡す。
+    HMM profile、E-value、分類ロジックは変更しない。
+    """
+    jobs = max(1, int(jobs))
+    if jobs == 1 or len(profile_files) <= 1:
+        all_records = []
+        for target_file, (reference_data, scale_params) in zip(profile_files, references_loaded):
+            try:
+                all_records.extend(
+                    _scan_single_profile(query_file, target_file, reference_data,
+                                         scale_params, query_lengths, cpu)
+                )
+            except Exception as e:
+                print(f"Processing of {query_file} with {target_file} failed: {e}")
+        return all_records
+
+    workers = min(jobs, len(profile_files))
+    cpu_per_scan = max(1, cpu // workers)
+    records_by_profile = [[] for _ in profile_files]
+
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        futures = {}
+        for idx, (target_file, (reference_data, scale_params)) in enumerate(
+                zip(profile_files, references_loaded)):
+            future = executor.submit(
+                _scan_single_profile, query_file, target_file, reference_data,
+                scale_params, query_lengths, cpu_per_scan
+            )
+            futures[future] = (idx, target_file)
+
+        for future in as_completed(futures):
+            idx, target_file = futures[future]
+            try:
+                records_by_profile[idx] = future.result()
+            except Exception as e:
+                print(f"Processing of {query_file} with {target_file} failed: {e}")
+
+    all_records = []
+    for records in records_by_profile:
+        all_records.extend(records)
+    return all_records
 
 
 # ============================================================
@@ -567,26 +632,14 @@ def plot_scatter(all_records, references_loaded, output_png,
 # ============================================================
 
 def process_single_query(query_file, profile_files, reference_files, output_prefix,
-                         save_fasta, cpu, plot):
+                         save_fasta, cpu, plot, jobs=DEFAULT_JOBS):
     base_name = os.path.splitext(os.path.basename(query_file))[0]
     output_prefix = output_prefix or f"{base_name}_results"
     query_lengths = get_query_lengths(query_file)
-    all_records = []
     references_loaded = [load_reference_data(r_file) for r_file in reference_files]
 
-    for target_file, (reference_data, scale_params) in zip(profile_files, references_loaded):
-        with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp:
-            tmp_out = tmp.name
-        try:
-            run_hmmscan(query_file, target_file, tmp_out, cpu=cpu)
-            all_records.extend(
-                convert_to_single_tab(tmp_out, reference_data, scale_params, query_lengths)
-            )
-        except Exception as e:
-            print(f"Processing of {query_file} with {target_file} failed: {e}")
-        finally:
-            if os.path.exists(tmp_out):
-                os.remove(tmp_out)
+    all_records = run_profile_scans(query_file, profile_files, references_loaded,
+                                    query_lengths, cpu, jobs=jobs)
 
     operon_queries, operon_gene_map = detect_operon_queries(all_records)
     unique_records = select_best_records(all_records)
@@ -618,7 +671,7 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
 # ============================================================
 
 def process_query_directory(query_dir, profile_files, reference_files, matrix_output_file,
-                            save_fasta, cpu, plot):
+                            save_fasta, cpu, plot, jobs=DEFAULT_JOBS):
     faa_files = sorted(glob.glob(os.path.join(query_dir, "*.faa")))
     if not faa_files:
         print(f"No .faa files found in directory: {query_dir}")
@@ -633,21 +686,9 @@ def process_query_directory(query_dir, profile_files, reference_files, matrix_ou
                 genome_name = os.path.basename(faa)
                 base = os.path.splitext(genome_name)[0]
                 query_lengths = get_query_lengths(faa)
-                all_records = []
 
-                for target_file, (reference_data, scale_params) in zip(profile_files, references_loaded):
-                    with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp:
-                        tmp_out = tmp.name
-                    try:
-                        run_hmmscan(faa, target_file, tmp_out, cpu=cpu)
-                        all_records.extend(
-                            convert_to_single_tab(tmp_out, reference_data, scale_params, query_lengths)
-                        )
-                    except Exception as e:
-                        print(f"Processing of {faa} with {target_file} failed: {e}")
-                    finally:
-                        if os.path.exists(tmp_out):
-                            os.remove(tmp_out)
+                all_records = run_profile_scans(faa, profile_files, references_loaded,
+                                                query_lengths, cpu, jobs=jobs)
 
                 operon_queries, operon_gene_map = detect_operon_queries(all_records)
                 best = select_best_records(all_records)
@@ -721,7 +762,7 @@ def translate_six_frames(genome_fasta, output_faa, min_orf_len=DEFAULT_MIN_ORF_L
 # ============================================================
 
 def process_genome_query(genome_file, profile_files, reference_files, output_prefix,
-                         save_fasta, cpu, plot, min_orf_len):
+                         save_fasta, cpu, plot, min_orf_len, jobs=DEFAULT_JOBS):
     """
     ゲノムDNA FASTAを6フレーム翻訳してからhmmscanに渡す。
     翻訳済み一時FASTAを生成後、process_single_queryと同じフローで処理する。
@@ -741,22 +782,10 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
 
         # 翻訳済みFASTAを通常のタンパク質クエリとして処理
         query_lengths = get_query_lengths(tmp_faa_path)
-        all_records = []
         references_loaded = [load_reference_data(r_file) for r_file in reference_files]
 
-        for target_file, (reference_data, scale_params) in zip(profile_files, references_loaded):
-            with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp_hmm:
-                tmp_hmm_path = tmp_hmm.name
-            try:
-                run_hmmscan(tmp_faa_path, target_file, tmp_hmm_path, cpu=cpu)
-                all_records.extend(
-                    convert_to_single_tab(tmp_hmm_path, reference_data, scale_params, query_lengths)
-                )
-            except Exception as e:
-                print(f"Processing of {genome_file} with {target_file} failed: {e}")
-            finally:
-                if os.path.exists(tmp_hmm_path):
-                    os.remove(tmp_hmm_path)
+        all_records = run_profile_scans(tmp_faa_path, profile_files, references_loaded,
+                                        query_lengths, cpu, jobs=jobs)
 
         operon_queries, operon_gene_map = detect_operon_queries(all_records)
         unique_records = select_best_records(all_records)
@@ -822,6 +851,9 @@ def main():
                              "query hits color-coded; Full/Fragment threshold shown.")
     parser.add_argument("-c", "--cpu", type=int, default=DEFAULT_CPU,
                         help=f"Number of threads for HMMscan. Default: {DEFAULT_CPU}")
+    parser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS,
+                        help="Number of HMM profile scans to run in parallel. "
+                             f"Default: {DEFAULT_JOBS} (sequential, previous behavior).")
     parser.add_argument("--min_orf_len", type=int, default=DEFAULT_MIN_ORF_LEN,
                         help=f"Minimum ORF length (aa) retained after 6-frame translation "
                              f"(-g mode only). Default: {DEFAULT_MIN_ORF_LEN}")
@@ -829,6 +861,12 @@ def main():
 
     if len(args.profile) != len(args.reference):
         parser.error("The number of --profile files must match the number of --reference files.")
+    if args.cpu < 1:
+        parser.error("--cpu must be 1 or greater.")
+    if args.jobs < 1:
+        parser.error("--jobs must be 1 or greater.")
+    if args.min_orf_len < 1:
+        parser.error("--min_orf_len must be 1 or greater.")
 
     modes = [args.query, args.query_dir, args.genome]
     if sum(bool(m) for m in modes) > 1:
@@ -836,14 +874,16 @@ def main():
 
     if args.query:
         process_single_query(args.query, args.profile, args.reference,
-                             args.outprefix, args.save_fasta, args.cpu, args.plot)
+                             args.outprefix, args.save_fasta, args.cpu, args.plot,
+                             jobs=args.jobs)
     elif args.query_dir:
         process_query_directory(args.query_dir, args.profile, args.reference,
-                                args.matrix_output, args.save_fasta, args.cpu, args.plot)
+                                args.matrix_output, args.save_fasta, args.cpu, args.plot,
+                                jobs=args.jobs)
     elif args.genome:
         process_genome_query(args.genome, args.profile, args.reference,
                              args.outprefix, args.save_fasta, args.cpu, args.plot,
-                             args.min_orf_len)
+                             args.min_orf_len, jobs=args.jobs)
     else:
         parser.print_help()
         print("\nError: Please specify one of -q, -d, or -g.")
