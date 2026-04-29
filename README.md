@@ -40,6 +40,11 @@ python Nif_finderv0_23.py \
   -p -s
 ```
 
+To run independent HMM profile scans in parallel without changing the HMM
+profiles, E-value threshold, classification logic, or plot contents, add
+`--jobs`. For example, `--cpu 12 --jobs 6` runs up to six profile scans at the
+same time and divides the CPU budget across them.
+
 ### Genome DNA FASTA (`-g`)
 
 Performs 6-frame translation internally, then runs HMMscan on the translated ORFs. Useful for detecting *nif* genes on scaffolds that may carry intervening sequences or rearrangement junctions. Note: takes longer time for 6 frame homology search.
@@ -71,6 +76,7 @@ python Nif_finderv0_23.py \
 | `-s`, `--save_fasta` | off | Save detected NifHDKENB sequences to FASTA |
 | `-p`, `--plot` | off | Save scatter plot PNG (protein length vs. −log₁₀ E-value) |
 | `-c`, `--cpu` | `8` | Number of CPU threads for HMMscan |
+| `-j`, `--jobs` | `1` | Number of independent HMM profile scans to run in parallel. `1` preserves the previous sequential behavior |
 | `--min_orf_len` | `10` | Minimum ORF length (aa) retained after 6-frame translation (`-g` only) |
 
 *`-q`, `-d`, and `-g` are mutually exclusive.*
