@@ -102,6 +102,13 @@ usage was about 65 MiB without `-p` and about 135–140 MiB with scatter plottin
 enabled. Running `--jobs 3 --cpu 6` reduced runtime while keeping peak memory
 similar for this protein FASTA test.
 
+## Web interface
+
+The `web/` directory contains a Vercel-ready side project for submitting protein
+FASTA sequences and visualizing Nif-Finder-compatible results. See
+[`web/README.md`](web/README.md) for local runner and production compute API
+configuration.
+
 ---
 
 ## Output files
