@@ -109,6 +109,10 @@ FASTA sequences and visualizing Nif-Finder-compatible results. See
 [`web/README.md`](web/README.md) for local runner and production compute API
 configuration.
 
+The `compute/` directory contains a Docker/FastAPI service that runs the
+Python/HMMER pipeline for the web interface. Deploy it separately and set
+`NIF_FINDER_API_URL` in Vercel to the compute service `/analyze` endpoint.
+
 ---
 
 ## Output files

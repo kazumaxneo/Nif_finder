@@ -57,3 +57,7 @@ instead of pretending to run the HMMER pipeline.
 Vercel is best used here for the web UI and visualization layer. Production
 HMMER execution should run in a compute environment where the `hmmscan` binary,
 database files, memory, and request duration can be controlled reliably.
+
+This repository includes a Docker/FastAPI compute service in `../compute`.
+Deploy that service first, then set `NIF_FINDER_API_URL` to its `/analyze`
+endpoint and redeploy the Vercel app.

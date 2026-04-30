@@ -1,0 +1,11 @@
+.git
+.DS_Store
+web/node_modules
+web/.next
+web/.vercel
+**/__pycache__
+*.pyc
+generl_bacteria/*_nifHDKENB.faa
+generl_bacteria/*_scatter.png
+generl_bacteria/test_jobs*.txt
+generl_bacteria/my_v024_test*
