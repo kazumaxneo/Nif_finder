@@ -117,22 +117,36 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const upstream = await fetch(apiUrl, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      fasta,
-      jobs: body.jobs ?? 3,
-      cpu: body.cpu ?? 6,
-    }),
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        fasta,
+        jobs: body.jobs ?? 3,
+        cpu: body.cpu ?? 6,
+      }),
+    });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        error: "Could not reach the Nif-Finder compute API.",
+        detail: error instanceof Error ? error.message : String(error),
+      },
+      { status: 502 },
+    );
+  }
 
   const text = await upstream.text();
   let payload: unknown;
   try {
-    payload = JSON.parse(text);
+    payload = text ? JSON.parse(text) : { error: "Compute API returned an empty response." };
   } catch {
-    payload = { error: "Compute API returned a non-JSON response.", detail: text };
+    payload = {
+      error: "Compute API returned a non-JSON response.",
+      detail: text.slice(0, 1000),
+    };
   }
 
   return NextResponse.json(payload, { status: upstream.status });

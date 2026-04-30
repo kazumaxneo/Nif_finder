@@ -26,6 +26,7 @@ type ApiResponse = {
   records?: ResultRecord[];
   error?: string;
   setup?: string;
+  detail?: string;
   sequenceCount?: number;
 };
 
@@ -70,7 +71,10 @@ export default function Home() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ fasta, jobs, cpu }),
       });
-      const data = (await res.json()) as ApiResponse;
+      const text = await res.text();
+      const data = text
+        ? (JSON.parse(text) as ApiResponse)
+        : ({ error: `Analysis request returned an empty response (${res.status}).` } satisfies ApiResponse);
       setResponse(data);
     } catch (error) {
       setResponse({ error: error instanceof Error ? error.message : "Request failed." });
@@ -150,6 +154,7 @@ export default function Home() {
             <div>
               <strong>{response.error}</strong>
               {response.setup ? <p>{response.setup}</p> : null}
+              {response.detail ? <p>{response.detail}</p> : null}
               {response.sequenceCount ? <p>{response.sequenceCount} FASTA record(s) were parsed.</p> : null}
             </div>
           </div>
