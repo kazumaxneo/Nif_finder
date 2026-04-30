@@ -21,8 +21,14 @@ mamba install -c bioconda -y hmmer
 #Nif_Finder
 git clone https://github.com/kazumaxneo/Nif_finder.git
 cd Nif_finder/generl_bacteria/
-python Nif_finderv0_23.py -h
+export NIF_FINDER_DB="$(pwd)"
+python Nif_finderv0_24.py -h
 ```
+
+`NIF_FINDER_DB` should point to the directory containing the bundled model
+folders (`nifH`, `nifD`, `nifK`, `nifE`, `nifN`, and `nifB`). When this
+environment variable is set, Nif-Finder can automatically load the standard
+HMM profiles and reference classification files.
 
 
 ## Test run
@@ -31,12 +37,8 @@ python Nif_finderv0_23.py -h
 
 ```bash
 cd Nif_finder/generl_bacteria/
-python Nif_finderv0_23.py \
+python Nif_finderv0_24.py \
   -q protein_test/Calothrix_sp.NIES-4101.faa \
-  -t nifH/proteins_hmm nifD/proteins_hmm nifK/proteins_hmm \
-     nifE/proteins_hmm nifN/proteins_hmm nifB/proteins_hmm \
-  -r nifH/nifHclassification nifD/nifDclassification nifK/nifKclassification \
-     nifE/nifEclassification nifN/nifNclassification nifB/nifBclassification \
   -p -s
 ```
 
@@ -50,14 +52,13 @@ same time and divides the CPU budget across them.
 Performs 6-frame translation internally, then runs HMMscan on the translated ORFs. Useful for detecting *nif* genes on scaffolds that may carry intervening sequences or rearrangement junctions. Note: takes longer time for 6 frame homology search.
 
 ```bash
-python Nif_finderv0_23.py \
+python Nif_finderv0_24.py \
   -g genome_test/Calothrix_sp.NIES-4101.fna \
-  -t nifH/proteins_hmm nifD/proteins_hmm nifK/proteins_hmm \
-     nifE/proteins_hmm nifN/proteins_hmm nifB/proteins_hmm \
-  -r nifH/nifHclassification nifD/nifDclassification nifK/nifKclassification \
-     nifE/nifEclassification nifN/nifNclassification nifB/nifBclassification \
   --min_orf_len 30 -p -s
 ```
+
+If you need to use a custom model set, you can still specify `-t/--profile` and
+`-r/--reference` manually. Manual paths take precedence over `NIF_FINDER_DB`.
 
 
 ---
@@ -69,8 +70,8 @@ python Nif_finderv0_23.py \
 | `-q`, `--query` | — | Path to a single protein FASTA file |
 | `-d`, `--query_dir` | — | Path to a directory containing `.faa` files |
 | `-g`, `--genome` | — | Path to a genome DNA FASTA file (6-frame translation mode) |
-| `-t`, `--profile` | required | HMM profile file(s); one per gene, space-separated |
-| `-r`, `--reference` | required | Reference TSV file(s); one per gene, same order as `-t` |
+| `-t`, `--profile` | `NIF_FINDER_DB` standard models | HMM profile file(s); one per gene, space-separated |
+| `-r`, `--reference` | `NIF_FINDER_DB` standard references | Reference TSV file(s); one per gene, same order as `-t` |
 | `-o`, `--outprefix` | input filename | Output file prefix |
 | `-m`, `--matrix_output` | `nif_matrix.tsv` | Gene-status matrix output file (directory mode only) |
 | `-s`, `--save_fasta` | off | Save detected NifHDKENB sequences to FASTA |
@@ -80,6 +81,14 @@ python Nif_finderv0_23.py \
 | `--min_orf_len` | `10` | Minimum ORF length (aa) retained after 6-frame translation (`-g` only) |
 
 *`-q`, `-d`, and `-g` are mutually exclusive.*
+*If `-t`/`-r` are omitted, set `NIF_FINDER_DB` to the bundled database directory.*
+
+## Memory usage
+
+On the bundled `protein_test/Calothrix_sp.NIES-4101.faa` example, peak memory
+usage was about 65 MiB without `-p` and about 135–140 MiB with scatter plotting
+enabled. Running `--jobs 3 --cpu 6` reduced runtime while keeping peak memory
+similar for this protein FASTA test.
 
 ---
 
@@ -186,6 +195,7 @@ Nif-Finder successfully detected the full-length *nifH2* and 3 out of 4 *nifH1* 
 | v0.21 | z-score normalisation for 1-NN; Full_operon detection redesigned as post-processing; scatter plot added |
 | v0.22 | `-g` genome DNA mode with internal 6-frame translation; `--min_orf_len` option |
 | v0.23 | Bug fix
+| v0.24 | `NIF_FINDER_DB` environment variable support for automatic standard model/reference discovery |
 
 ---
 
