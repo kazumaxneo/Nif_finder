@@ -83,6 +83,13 @@ If you need to use a custom model set, you can still specify `-t/--profile` and
 *`-q`, `-d`, and `-g` are mutually exclusive.*
 *If `-t`/`-r` are omitted, set `NIF_FINDER_DB` to the bundled database directory.*
 
+## Memory usage
+
+On the bundled `protein_test/Calothrix_sp.NIES-4101.faa` example, peak memory
+usage was about 65 MiB without `-p` and about 135–140 MiB with scatter plotting
+enabled. Running `--jobs 3 --cpu 6` reduced runtime while keeping peak memory
+similar for this protein FASTA test.
+
 ---
 
 ## Output files
