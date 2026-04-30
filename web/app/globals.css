@@ -115,8 +115,7 @@ input:focus {
 .upload-row,
 .settings,
 .summary-row,
-.section-title,
-.metrics {
+.section-title {
   align-items: center;
   display: flex;
 }
@@ -233,34 +232,9 @@ input:focus {
   padding: 14px;
 }
 
-.metrics {
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-.metric {
-  align-items: center;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  display: flex;
-  gap: 10px;
-  min-width: 124px;
-  padding: 12px;
-}
-
-.metric span {
-  border-radius: 999px;
-  height: 12px;
-  width: 12px;
-}
-
-.metric strong {
-  font-size: 18px;
-}
-
 .chart-panel,
 .table-wrap,
+.summary-table-wrap,
 .empty-state {
   background: var(--panel);
   border: 1px solid var(--line);
@@ -284,7 +258,8 @@ input:focus {
   width: 100%;
 }
 
-.table-wrap {
+.table-wrap,
+.summary-table-wrap {
   overflow: auto;
 }
 
@@ -305,6 +280,26 @@ td {
 th {
   background: #f8fafb;
   color: #33404d;
+  font-weight: 800;
+}
+
+.summary-table {
+  font-size: 14px;
+}
+
+.summary-table th,
+.summary-table td {
+  text-align: center;
+}
+
+.summary-table th:first-child,
+.summary-table td:first-child {
+  text-align: left;
+}
+
+.summary-table tbody th {
+  background: white;
+  color: var(--ink);
   font-weight: 800;
 }
 

@@ -27,16 +27,7 @@ MAVKIAINGFGRIGRNVRAAQKRLKAEGKVVLVTGKGGIGKSTTSQNTLAALGVKVLQIGCDPKHDSTFTLTGHGEGAPE
 MSIVNIGPGQIGKSTTSQNTLAALAQGLNVLNVGCDPKHDSTFTLTGAGQGAPEGTVKAIGEAVGLGVEVVKVTE
 `;
 
-const geneColors: Record<string, string> = {
-  nifH: "#d73a31",
-  nifD: "#206fb1",
-  nifK: "#1f8f55",
-  nifE: "#b56b00",
-  nifN: "#7b4fb3",
-  nifB: "#0f8b8d",
-  other: "#7f8790",
-  unclassifiable: "#9aa0a6",
-};
+const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
 
 export default function Home() {
   const [fasta, setFasta] = useState(sampleFasta);
@@ -46,12 +37,23 @@ export default function Home() {
   const [response, setResponse] = useState<ApiResponse | null>(null);
 
   const records = response?.records ?? [];
-  const geneCounts = useMemo(() => {
-    return records.reduce<Record<string, number>>((acc, record) => {
-      acc[record.prediction] = (acc[record.prediction] ?? 0) + 1;
-      return acc;
-    }, {});
+  const nifSummary = useMemo(() => {
+    return nifGenes.map((gene) => {
+      const geneRecords = records.filter((record) => record.prediction === gene);
+      const full = geneRecords.filter(
+        (record) => record.completeness === "Full" || record.completeness === "Full_operon",
+      ).length;
+      const incomplete = geneRecords.filter((record) => record.completeness === "Fragment").length;
+
+      return {
+        gene,
+        total: geneRecords.length,
+        full,
+        incomplete,
+      };
+    });
   }, [records]);
+  const totalNifCopies = nifSummary.reduce((sum, row) => sum + row.total, 0);
 
   async function analyze() {
     setLoading(true);
@@ -136,7 +138,7 @@ export default function Home() {
             <p className="eyebrow">Results</p>
             <h2>Nif hit overview</h2>
           </div>
-          <div className="counter">{records.length} hits</div>
+          <div className="counter">{totalNifCopies} nif copies</div>
         </div>
 
         {response?.error ? (
@@ -153,22 +155,33 @@ export default function Home() {
 
         {records.length > 0 ? (
           <>
-            <div className="metrics">
-              {Object.entries(geneCounts).map(([gene, count]) => (
-                <div className="metric" key={gene}>
-                  <span style={{ backgroundColor: geneColors[gene] ?? geneColors.other }} />
-                  <div>
-                    <strong>{count}</strong>
-                    <p>{gene}</p>
-                  </div>
-                </div>
-              ))}
+            <div className="summary-table-wrap">
+              <table className="summary-table">
+                <thead>
+                  <tr>
+                    <th>Gene</th>
+                    <th>Total copies</th>
+                    <th>Full-length</th>
+                    <th>Incomplete</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {nifSummary.map((row) => (
+                    <tr key={row.gene}>
+                      <th scope="row">{row.gene}</th>
+                      <td>{row.total}</td>
+                      <td>{row.full}</td>
+                      <td>{row.incomplete}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             <div className="chart-panel">
               <div className="section-title">
                 <BarChart3 size={18} aria-hidden />
-                Nif-Finder scatter plot
+                Nif-Finder reference plot
               </div>
               {response?.plotPngBase64 ? (
                 <img
