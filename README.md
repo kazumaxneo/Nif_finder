@@ -47,6 +47,18 @@ profiles, E-value threshold, classification logic, or plot contents, add
 `--jobs`. For example, `--cpu 12 --jobs 6` runs up to six profile scans at the
 same time and divides the CPU budget across them.
 
+For a faster protein FASTA test run, use profile-level parallelism:
+
+```bash
+python Nif_finderv0_24.py \
+  -q protein_test/Calothrix_sp.NIES-4101.faa \
+  -o Calothrix_fast_test \
+  --jobs 3 --cpu 6 \
+  -p -s
+```
+
+See [Memory usage](#memory-usage) for the measured peak memory of this example.
+
 ### Genome DNA FASTA (`-g`)
 
 Performs 6-frame translation internally, then runs HMMscan on the translated ORFs. Useful for detecting *nif* genes on scaffolds that may carry intervening sequences or rearrangement junctions. Note: takes longer time for 6 frame homology search.
