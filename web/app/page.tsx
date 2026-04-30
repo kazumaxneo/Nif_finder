@@ -2,16 +2,6 @@
 
 import { ChangeEvent, useMemo, useState } from "react";
 import { Activity, AlertCircle, BarChart3, FileUp, Play, Settings } from "lucide-react";
-import {
-  CartesianGrid,
-  Legend,
-  ResponsiveContainer,
-  Scatter,
-  ScatterChart,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
 
 type ResultRecord = {
   query: string;
@@ -24,6 +14,7 @@ type ResultRecord = {
 
 type ApiResponse = {
   records?: ResultRecord[];
+  plotPngBase64?: string | null;
   error?: string;
   setup?: string;
   detail?: string;
@@ -177,25 +168,17 @@ export default function Home() {
             <div className="chart-panel">
               <div className="section-title">
                 <BarChart3 size={18} aria-hidden />
-                Protein length vs -log10(E-value)
+                Nif-Finder scatter plot
               </div>
-              <ResponsiveContainer width="100%" height={360}>
-                <ScatterChart margin={{ top: 16, right: 16, bottom: 24, left: 4 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="queryLength" name="Protein length" unit=" aa" />
-                  <YAxis dataKey="logEvalue" name="-log10(E)" />
-                  <Tooltip cursor={{ strokeDasharray: "3 3" }} />
-                  <Legend />
-                  {Object.keys(geneCounts).map((gene) => (
-                    <Scatter
-                      key={gene}
-                      name={gene}
-                      data={records.filter((record) => record.prediction === gene)}
-                      fill={geneColors[gene] ?? geneColors.other}
-                    />
-                  ))}
-                </ScatterChart>
-              </ResponsiveContainer>
+              {response?.plotPngBase64 ? (
+                <img
+                  className="nif-plot"
+                  src={`data:image/png;base64,${response.plotPngBase64}`}
+                  alt="Nif-Finder scatter plot"
+                />
+              ) : (
+                <div className="empty-state compact">No plot image was returned by the compute API.</div>
+              )}
             </div>
 
             <div className="table-wrap">

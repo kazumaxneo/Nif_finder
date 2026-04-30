@@ -275,6 +275,15 @@ input:focus {
   margin-bottom: 12px;
 }
 
+.nif-plot {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  width: 100%;
+}
+
 .table-wrap {
   overflow: auto;
 }
@@ -303,6 +312,10 @@ th {
   color: var(--muted);
   padding: 36px;
   text-align: center;
+}
+
+.empty-state.compact {
+  padding: 20px;
 }
 
 @media (max-width: 900px) {

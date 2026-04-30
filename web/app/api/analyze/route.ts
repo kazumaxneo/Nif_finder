@@ -57,7 +57,7 @@ async function runLocalNifFinder(fasta: string, jobs: number, cpu: number) {
     await writeFile(queryPath, fasta);
     await execFileAsync(
       python,
-      [script, "-q", queryPath, "-o", outPrefix, "--jobs", String(jobs), "--cpu", String(cpu)],
+      [script, "-q", queryPath, "-o", outPrefix, "--jobs", String(jobs), "--cpu", String(cpu), "-p"],
       {
         env: {
           ...process.env,
@@ -67,7 +67,14 @@ async function runLocalNifFinder(fasta: string, jobs: number, cpu: number) {
       },
     );
     const tsv = await readFile(`${outPrefix}.txt`, "utf8");
-    return { records: parseNifFinderTsv(tsv), runner: "local" };
+    let plotPngBase64: string | null = null;
+    try {
+      const plot = await readFile(`${outPrefix}_scatter.png`);
+      plotPngBase64 = plot.toString("base64");
+    } catch {
+      plotPngBase64 = null;
+    }
+    return { records: parseNifFinderTsv(tsv), plotPngBase64, runner: "local" };
   } finally {
     await rm(workDir, { recursive: true, force: true });
   }

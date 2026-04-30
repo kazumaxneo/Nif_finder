@@ -1,3 +1,4 @@
+import base64
 import os
 import subprocess
 import tempfile
@@ -34,6 +35,7 @@ class ResultRecord(BaseModel):
 
 class AnalyzeResponse(BaseModel):
     records: list[ResultRecord]
+    plotPngBase64: str | None = None
     runner: str = "nif-finder-compute"
 
 
@@ -126,6 +128,7 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
             str(request.jobs),
             "--cpu",
             str(request.cpu),
+            "-p",
         ]
         env = {
             **os.environ,
@@ -157,4 +160,9 @@ def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
         except Exception as exc:
             raise HTTPException(status_code=500, detail=f"Failed to parse Nif-Finder results: {exc}") from exc
 
-    return AnalyzeResponse(records=records)
+        plot_path = Path(f"{out_prefix}_scatter.png")
+        plot_png_base64 = None
+        if plot_path.is_file():
+            plot_png_base64 = base64.b64encode(plot_path.read_bytes()).decode("ascii")
+
+    return AnalyzeResponse(records=records, plotPngBase64=plot_png_base64)
