@@ -111,6 +111,12 @@ similar for this protein FASTA test.
 
 ## Web interface
 
+Nif-Finder can also be used from the public web interface:
+https://web-theta-black-17.vercel.app/
+The web UI runs on Vercel and sends protein FASTA jobs to a Hugging Face Spaces
+Docker compute API running Python/HMMER; the first run after inactivity can take
+a little while while the free compute service wakes up.
+
 The `web/` directory contains a Vercel-ready side project for submitting protein
 FASTA sequences and visualizing Nif-Finder-compatible results. See
 [`web/README.md`](web/README.md) for local runner and production compute API
