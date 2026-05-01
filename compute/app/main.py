@@ -24,6 +24,7 @@ class AnalyzeRequest(BaseModel):
     fasta: str = Field(..., min_length=1)
     jobs: int = Field(default=3, ge=1, le=6)
     cpu: int = Field(default=6, ge=1, le=32)
+    plot: bool = True
 
 
 class ResultRecord(BaseModel):
@@ -142,8 +143,9 @@ def analyze(request: AnalyzeRequest, x_api_key: str | None = Header(default=None
             str(request.jobs),
             "--cpu",
             str(request.cpu),
-            "-p",
         ]
+        if request.plot:
+            command.append("-p")
         env = {
             **os.environ,
             "NIF_FINDER_DB": str(NIF_FINDER_DB),
@@ -179,6 +181,8 @@ def analyze(request: AnalyzeRequest, x_api_key: str | None = Header(default=None
         plot_message = None
         if plot_path.is_file():
             plot_png_base64 = base64.b64encode(plot_path.read_bytes()).decode("ascii")
+        elif not request.plot:
+            plot_message = "Plot output was disabled for this run."
         else:
             output = "\n".join(part for part in [completed.stdout.strip(), completed.stderr.strip()] if part)
             plot_message = output[-1000:] if output else "Nif-Finder did not produce a scatter plot."

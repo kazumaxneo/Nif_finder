@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
-import { Activity, AlertCircle, BarChart3, FileUp, Play, Settings } from "lucide-react";
+import { Activity, AlertCircle, BarChart3, Download, FileUp, Play, Settings } from "lucide-react";
 
 type ResultRecord = {
   query: string;
@@ -92,15 +92,25 @@ FLEENGAYQDLDFVSYDVLGDVVCGGFANYR
 `;
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
+const exampleDatasets = [
+  { id: "none", label: "None" },
+  { id: "known-nif", label: "Known nifHDKENB demo" },
+];
 
 export default function Home() {
   const [fasta, setFasta] = useState("");
   const [jobs, setJobs] = useState(3);
   const [cpu, setCpu] = useState(6);
+  const [plotOutput, setPlotOutput] = useState(true);
+  const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
+  const [exampleDataset, setExampleDataset] = useState("none");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<ApiResponse | null>(null);
 
   const records = response?.records ?? [];
+  const displayedRecords = showOnlyNifHits
+    ? records.filter((record) => nifGenes.includes(record.prediction))
+    : records;
   const nifSummary = useMemo(() => {
     return nifGenes.map((gene) => {
       const geneRecords = records.filter((record) => record.prediction === gene);
@@ -119,6 +129,47 @@ export default function Home() {
   }, [records]);
   const totalNifCopies = nifSummary.reduce((sum, row) => sum + row.total, 0);
 
+  function loadExampleDataset(dataset: string) {
+    setExampleDataset(dataset);
+    setResponse(null);
+    if (dataset === "known-nif") {
+      setFasta(sampleFasta);
+    } else {
+      setFasta("");
+    }
+  }
+
+  function downloadText(filename: string, content: string, type = "text/plain;charset=utf-8") {
+    const blob = new Blob([content], { type });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadTsv() {
+    const header = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness"];
+    const rows = displayedRecords.map((record) => [
+      record.query,
+      record.logEvalue.toFixed(2),
+      String(record.alignLength),
+      record.queryLength == null ? "N/A" : String(record.queryLength),
+      record.prediction,
+      record.completeness,
+    ]);
+    downloadText("nif_finder_results.tsv", [header, ...rows].map((row) => row.join("\t")).join("\n") + "\n");
+  }
+
+  function downloadPlot() {
+    if (!response?.plotPngBase64) return;
+    const link = document.createElement("a");
+    link.href = `data:image/png;base64,${response.plotPngBase64}`;
+    link.download = "nif_finder_scatter.png";
+    link.click();
+  }
+
   async function analyze() {
     setLoading(true);
     setResponse(null);
@@ -126,7 +177,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fasta, jobs, cpu }),
+        body: JSON.stringify({ fasta, jobs, cpu, plot: plotOutput }),
       });
       const text = await res.text();
       const data = text
@@ -175,7 +226,7 @@ export default function Home() {
             <span>Load protein FASTA</span>
             <input type="file" accept=".faa,.fa,.fasta,.txt" onChange={handleFile} />
           </label>
-          <button className="ghost-button" type="button" onClick={() => setFasta(sampleFasta)}>
+          <button className="ghost-button" type="button" onClick={() => loadExampleDataset("known-nif")}>
             Sample
           </button>
         </div>
@@ -195,6 +246,36 @@ export default function Home() {
             <input type="number" min={1} max={24} value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
           </label>
         </div>
+
+        <div className="settings advanced-settings">
+          <div className="section-title">
+            <Settings size={17} aria-hidden />
+            Output
+          </div>
+          <label className="toggle-row">
+            <input type="checkbox" checked={plotOutput} onChange={(event) => setPlotOutput(event.target.checked)} />
+            Plot output
+          </label>
+          <label className="toggle-row">
+            <input
+              type="checkbox"
+              checked={showOnlyNifHits}
+              onChange={(event) => setShowOnlyNifHits(event.target.checked)}
+            />
+            Show only nif hits
+          </label>
+        </div>
+
+        <label className="field compact-field">
+          Example dataset
+          <select value={exampleDataset} onChange={(event) => loadExampleDataset(event.target.value)}>
+            {exampleDatasets.map((dataset) => (
+              <option key={dataset.id} value={dataset.id}>
+                {dataset.label}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <button className="run-button" type="button" onClick={analyze} disabled={loading}>
           <Play size={18} aria-hidden />
@@ -277,7 +358,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {records.map((record) => (
+                  {displayedRecords.map((record) => (
                     <tr key={`${record.query}-${record.prediction}`}>
                       <td>{record.query}</td>
                       <td>{record.prediction}</td>
@@ -289,6 +370,17 @@ export default function Home() {
                   ))}
                 </tbody>
               </table>
+            </div>
+
+            <div className="download-row" aria-label="Download results">
+              <button className="ghost-button" type="button" onClick={downloadTsv} disabled={displayedRecords.length === 0}>
+                <Download size={16} aria-hidden />
+                Download TSV
+              </button>
+              <button className="ghost-button" type="button" onClick={downloadPlot} disabled={!response?.plotPngBase64}>
+                <Download size={16} aria-hidden />
+                Download PNG
+              </button>
             </div>
           </>
         ) : (
