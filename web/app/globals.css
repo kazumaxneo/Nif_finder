@@ -210,8 +210,13 @@ input:focus {
   flex: 1;
 }
 
-.settings .wide-setting {
-  flex: 1 0 100%;
+.run-settings label {
+  flex: 0 1 calc((100% - 134px) / 3);
+  min-width: 0;
+}
+
+.run-settings input {
+  min-height: 42px;
 }
 
 .compact-field {

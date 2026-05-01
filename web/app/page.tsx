@@ -207,7 +207,7 @@ export default function Home() {
           <Activity size={26} aria-hidden />
           <div>
             <h1>Nif-Finder Web</h1>
-            <p>Protein FASTA analysis and nif hit visualization</p>
+            <p>NifHDKENB identification from protein fasta</p>
           </div>
         </div>
 
@@ -241,7 +241,7 @@ export default function Home() {
         </label>
         <p className="input-note">Max size: 10 MB. Example is a demo set of known nifHDKENB proteins.</p>
 
-        <div className="settings">
+        <div className="settings run-settings">
           <div className="section-title">
             <Settings size={17} aria-hidden />
             Run settings
@@ -254,7 +254,7 @@ export default function Home() {
             CPU
             <input type="number" min={1} max={24} value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
           </label>
-          <label className="wide-setting">
+          <label>
             E-value threshold
             <input
               type="text"
