@@ -301,18 +301,19 @@ def convert_to_single_tab(input_file, reference_data, scale_params, query_length
 # profileごとのHMMscan実行
 # ============================================================
 
-def _scan_single_profile(query_file, target_file, reference_data, scale_params, query_lengths, cpu):
+def _scan_single_profile(query_file, target_file, reference_data, scale_params, query_lengths, cpu, e_value):
     with tempfile.NamedTemporaryFile(mode='w+', delete=False, suffix='.txt') as tmp:
         tmp_out = tmp.name
     try:
-        run_hmmscan(query_file, target_file, tmp_out, cpu=cpu)
+        run_hmmscan(query_file, target_file, tmp_out, e_value=e_value, cpu=cpu)
         return convert_to_single_tab(tmp_out, reference_data, scale_params, query_lengths)
     finally:
         if os.path.exists(tmp_out):
             os.remove(tmp_out)
 
 
-def run_profile_scans(query_file, profile_files, references_loaded, query_lengths, cpu, jobs=DEFAULT_JOBS):
+def run_profile_scans(query_file, profile_files, references_loaded, query_lengths, cpu,
+                      jobs=DEFAULT_JOBS, e_value=DEFAULT_E_VALUE):
     """
     profileごとのhmmscanを実行し、既定では従来どおり逐次処理する。
     jobs > 1 の場合のみ、独立したprofile scanを並列実行する。
@@ -327,7 +328,7 @@ def run_profile_scans(query_file, profile_files, references_loaded, query_length
             try:
                 all_records.extend(
                     _scan_single_profile(query_file, target_file, reference_data,
-                                         scale_params, query_lengths, cpu)
+                                         scale_params, query_lengths, cpu, e_value)
                 )
             except Exception as e:
                 print(f"Processing of {query_file} with {target_file} failed: {e}")
@@ -343,7 +344,7 @@ def run_profile_scans(query_file, profile_files, references_loaded, query_length
                 zip(profile_files, references_loaded)):
             future = executor.submit(
                 _scan_single_profile, query_file, target_file, reference_data,
-                scale_params, query_lengths, cpu_per_scan
+                scale_params, query_lengths, cpu_per_scan, e_value
             )
             futures[future] = (idx, target_file)
 
@@ -700,14 +701,14 @@ def plot_scatter(all_records, references_loaded, output_png,
 # ============================================================
 
 def process_single_query(query_file, profile_files, reference_files, output_prefix,
-                         save_fasta, cpu, plot, jobs=DEFAULT_JOBS):
+                         save_fasta, cpu, plot, jobs=DEFAULT_JOBS, e_value=DEFAULT_E_VALUE):
     base_name = os.path.splitext(os.path.basename(query_file))[0]
     output_prefix = output_prefix or f"{base_name}_results"
     query_lengths = get_query_lengths(query_file)
     references_loaded = [load_reference_data(r_file) for r_file in reference_files]
 
     all_records = run_profile_scans(query_file, profile_files, references_loaded,
-                                    query_lengths, cpu, jobs=jobs)
+                                    query_lengths, cpu, jobs=jobs, e_value=e_value)
 
     operon_queries, operon_gene_map = detect_operon_queries(all_records)
     unique_records = select_best_records(all_records)
@@ -739,7 +740,7 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
 # ============================================================
 
 def process_query_directory(query_dir, profile_files, reference_files, matrix_output_file,
-                            save_fasta, cpu, plot, jobs=DEFAULT_JOBS):
+                            save_fasta, cpu, plot, jobs=DEFAULT_JOBS, e_value=DEFAULT_E_VALUE):
     faa_files = sorted(glob.glob(os.path.join(query_dir, "*.faa")))
     if not faa_files:
         print(f"No .faa files found in directory: {query_dir}")
@@ -756,7 +757,7 @@ def process_query_directory(query_dir, profile_files, reference_files, matrix_ou
                 query_lengths = get_query_lengths(faa)
 
                 all_records = run_profile_scans(faa, profile_files, references_loaded,
-                                                query_lengths, cpu, jobs=jobs)
+                                                query_lengths, cpu, jobs=jobs, e_value=e_value)
 
                 operon_queries, operon_gene_map = detect_operon_queries(all_records)
                 best = select_best_records(all_records)
@@ -830,7 +831,8 @@ def translate_six_frames(genome_fasta, output_faa, min_orf_len=DEFAULT_MIN_ORF_L
 # ============================================================
 
 def process_genome_query(genome_file, profile_files, reference_files, output_prefix,
-                         save_fasta, cpu, plot, min_orf_len, jobs=DEFAULT_JOBS):
+                         save_fasta, cpu, plot, min_orf_len, jobs=DEFAULT_JOBS,
+                         e_value=DEFAULT_E_VALUE):
     """
     ゲノムDNA FASTAを6フレーム翻訳してからhmmscanに渡す。
     翻訳済み一時FASTAを生成後、process_single_queryと同じフローで処理する。
@@ -853,7 +855,7 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
         references_loaded = [load_reference_data(r_file) for r_file in reference_files]
 
         all_records = run_profile_scans(tmp_faa_path, profile_files, references_loaded,
-                                        query_lengths, cpu, jobs=jobs)
+                                        query_lengths, cpu, jobs=jobs, e_value=e_value)
 
         operon_queries, operon_gene_map = detect_operon_queries(all_records)
         unique_records = select_best_records(all_records)
@@ -924,6 +926,9 @@ def main():
     parser.add_argument("-j", "--jobs", type=int, default=DEFAULT_JOBS,
                         help="Number of HMM profile scans to run in parallel. "
                              f"Default: {DEFAULT_JOBS} (sequential, previous behavior).")
+    parser.add_argument("-e", "--evalue", type=float, default=DEFAULT_E_VALUE,
+                        help=f"HMMscan E-value threshold. Default: {DEFAULT_E_VALUE:g}. "
+                             "Changing this can alter sensitivity and specificity.")
     parser.add_argument("--min_orf_len", type=int, default=DEFAULT_MIN_ORF_LEN,
                         help=f"Minimum ORF length (aa) retained after 6-frame translation "
                              f"(-g mode only). Default: {DEFAULT_MIN_ORF_LEN}")
@@ -935,6 +940,8 @@ def main():
         parser.error("--jobs must be 1 or greater.")
     if args.min_orf_len < 1:
         parser.error("--min_orf_len must be 1 or greater.")
+    if args.evalue <= 0:
+        parser.error("--evalue must be greater than 0.")
 
     modes = [args.query, args.query_dir, args.genome]
     if sum(bool(m) for m in modes) > 1:
@@ -944,17 +951,17 @@ def main():
         profile_files, reference_files = resolve_model_paths(args.profile, args.reference, parser)
         process_single_query(args.query, profile_files, reference_files,
                              args.outprefix, args.save_fasta, args.cpu, args.plot,
-                             jobs=args.jobs)
+                             jobs=args.jobs, e_value=args.evalue)
     elif args.query_dir:
         profile_files, reference_files = resolve_model_paths(args.profile, args.reference, parser)
         process_query_directory(args.query_dir, profile_files, reference_files,
                                 args.matrix_output, args.save_fasta, args.cpu, args.plot,
-                                jobs=args.jobs)
+                                jobs=args.jobs, e_value=args.evalue)
     elif args.genome:
         profile_files, reference_files = resolve_model_paths(args.profile, args.reference, parser)
         process_genome_query(args.genome, profile_files, reference_files,
                              args.outprefix, args.save_fasta, args.cpu, args.plot,
-                             args.min_orf_len, jobs=args.jobs)
+                             args.min_orf_len, jobs=args.jobs, e_value=args.evalue)
     else:
         parser.print_help()
         print("\nError: Please specify one of -q, -d, or -g.")

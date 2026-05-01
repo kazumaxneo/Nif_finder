@@ -97,6 +97,7 @@ If you need to use a custom model set, you can still specify `-t/--profile` and
 | `-p`, `--plot` | off | Save scatter plot PNG (protein length vs. −log₁₀ E-value) |
 | `-c`, `--cpu` | `8` | Number of CPU threads for HMMscan |
 | `-j`, `--jobs` | `1` | Number of independent HMM profile scans to run in parallel. `1` preserves the previous sequential behavior |
+| `-e`, `--evalue` | `1e-10` | HMMscan E-value threshold. The default is recommended unless you have a specific reason to change sensitivity |
 | `--min_orf_len` | `10` | Minimum ORF length (aa) retained after 6-frame translation (`-g` only) |
 
 *`-q`, `-d`, and `-g` are mutually exclusive.*

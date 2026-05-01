@@ -104,6 +104,7 @@ export default function Home() {
   const [plotOutput, setPlotOutput] = useState(true);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
+  const [evalueThreshold, setEvalueThreshold] = useState("1e-10");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<ApiResponse | null>(null);
 
@@ -177,7 +178,7 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fasta, jobs, cpu, plot: plotOutput }),
+        body: JSON.stringify({ fasta, jobs, cpu, plot: plotOutput, evalue: Number(evalueThreshold) }),
       });
       const text = await res.text();
       const data = text
@@ -253,7 +254,16 @@ export default function Home() {
             CPU
             <input type="number" min={1} max={24} value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
           </label>
+          <label>
+            E-value threshold
+            <select value={evalueThreshold} onChange={(event) => setEvalueThreshold(event.target.value)}>
+              <option value="1e-10">1e-10 default</option>
+              <option value="1e-20">1e-20 stricter</option>
+              <option value="1e-5">1e-5 more permissive</option>
+            </select>
+          </label>
         </div>
+        <p className="input-note">Changing E-value can affect sensitivity; the default is recommended.</p>
 
         <div className="settings advanced-settings">
           <div className="section-title">

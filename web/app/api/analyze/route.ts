@@ -16,6 +16,7 @@ type AnalyzeRequest = {
   jobs?: number;
   cpu?: number;
   plot?: boolean;
+  evalue?: number;
 };
 
 function countFastaRecords(fasta: string) {
@@ -43,7 +44,7 @@ function parseNifFinderTsv(tsv: string) {
     });
 }
 
-async function runLocalNifFinder(fasta: string, jobs: number, cpu: number, plot: boolean) {
+async function runLocalNifFinder(fasta: string, jobs: number, cpu: number, plot: boolean, evalue: number) {
   const root = process.env.NIF_FINDER_ROOT
     ? path.resolve(process.env.NIF_FINDER_ROOT)
     : path.resolve(process.cwd(), "..", "generl_bacteria");
@@ -56,7 +57,19 @@ async function runLocalNifFinder(fasta: string, jobs: number, cpu: number, plot:
   await mkdir(workDir, { recursive: true });
   try {
     await writeFile(queryPath, fasta);
-    const args = [script, "-q", queryPath, "-o", outPrefix, "--jobs", String(jobs), "--cpu", String(cpu)];
+    const args = [
+      script,
+      "-q",
+      queryPath,
+      "-o",
+      outPrefix,
+      "--jobs",
+      String(jobs),
+      "--cpu",
+      String(cpu),
+      "--evalue",
+      String(evalue),
+    ];
     if (plot) {
       args.push("-p");
     }
@@ -106,7 +119,13 @@ export async function POST(request: NextRequest) {
   if (!apiUrl) {
     if (process.env.NIF_FINDER_LOCAL_RUNNER === "1") {
       try {
-        const result = await runLocalNifFinder(fasta, body.jobs ?? 3, body.cpu ?? 6, body.plot ?? true);
+        const result = await runLocalNifFinder(
+          fasta,
+          body.jobs ?? 3,
+          body.cpu ?? 6,
+          body.plot ?? true,
+          body.evalue ?? 1e-10,
+        );
         return NextResponse.json(result);
       } catch (error) {
         return NextResponse.json(
@@ -145,6 +164,7 @@ export async function POST(request: NextRequest) {
         jobs: body.jobs ?? 3,
         cpu: body.cpu ?? 6,
         plot: body.plot ?? true,
+        evalue: body.evalue ?? 1e-10,
       }),
     });
   } catch (error) {

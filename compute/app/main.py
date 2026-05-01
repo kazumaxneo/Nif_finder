@@ -25,6 +25,7 @@ class AnalyzeRequest(BaseModel):
     jobs: int = Field(default=3, ge=1, le=6)
     cpu: int = Field(default=6, ge=1, le=32)
     plot: bool = True
+    evalue: float = Field(default=1e-10, gt=0)
 
 
 class ResultRecord(BaseModel):
@@ -143,6 +144,8 @@ def analyze(request: AnalyzeRequest, x_api_key: str | None = Header(default=None
             str(request.jobs),
             "--cpu",
             str(request.cpu),
+            "--evalue",
+            str(request.evalue),
         ]
         if request.plot:
             command.append("-p")
