@@ -113,6 +113,11 @@ similar for this protein FASTA test.
 
 Nif-Finder can also be used from the public web interface:
 https://web-theta-black-17.vercel.app/
+
+<p align="center">
+  <a href="https://web-theta-black-17.vercel.app/"><img src="result7.png" alt="Nif-Finder Web interface" width="1100"></a>
+</p>
+
 The web UI runs on Vercel and sends protein FASTA jobs to a Hugging Face Spaces
 Docker compute API running Python/HMMER; the first run after inactivity can take
 a little while while the free compute service wakes up.
@@ -129,10 +134,6 @@ For Hugging Face Docker Spaces, use the repository root Dockerfile and set
 `NIF_FINDER_API_URL` to `https://<space-name>.hf.space/analyze`. If
 `NIF_FINDER_API_KEY` is configured on the compute service, set the same secret in
 Vercel so the web app can authenticate compute requests.
-
-<p align="center">
-  <a href="https://web-theta-black-17.vercel.app/"><img src="result7.png" alt="Nif-Finder Web interface" width="1100"></a>
-</p>
 
 ---
 
