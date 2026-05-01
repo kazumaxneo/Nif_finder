@@ -130,6 +130,10 @@ For Hugging Face Docker Spaces, use the repository root Dockerfile and set
 `NIF_FINDER_API_KEY` is configured on the compute service, set the same secret in
 Vercel so the web app can authenticate compute requests.
 
+<p align="center">
+  <a href="https://web-theta-black-17.vercel.app/"><img src="result7.png" alt="Nif-Finder Web interface" width="1100"></a>
+</p>
+
 ---
 
 ## Output files
