@@ -211,7 +211,12 @@ input:focus {
 }
 
 .run-settings label {
-  flex: 0 1 calc((100% - 134px) / 3);
+  flex: 0 0 calc((100% - 24px) / 3);
+  min-width: 0;
+}
+
+.run-settings .section-title {
+  flex: 1 0 100%;
   min-width: 0;
 }
 

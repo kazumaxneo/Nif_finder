@@ -216,7 +216,6 @@ export default function Home() {
           <textarea
             value={fasta}
             onChange={(event) => setFasta(event.target.value)}
-            placeholder="Paste protein FASTA here, or load a .faa/.fa/.fasta file."
             spellCheck={false}
           />
         </label>
