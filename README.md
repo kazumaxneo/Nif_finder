@@ -118,17 +118,16 @@ https://web-theta-black-17.vercel.app/
   <a href="https://web-theta-black-17.vercel.app/"><img src="result7.png" alt="Nif-Finder Web interface" width="1100"></a>
 </p>
 
+
+
 The web UI runs on Vercel and sends protein FASTA jobs to a Hugging Face Spaces
-Docker compute API running Python/HMMER; the first run after inactivity can take
-a little while while the free compute service wakes up.
+(Docker compute API) to run Python/HMMER. If no one use for a while, the image may become inactive, so it can take a little time to wake up on the free compute level.
 
 The `web/` directory contains a Vercel-ready side project for submitting protein
-FASTA sequences and visualizing Nif-Finder-compatible results. See
-[`web/README.md`](web/README.md) for local runner and production compute API
-configuration.
+FASTA sequences and visualizing Nif-Finder-compatible results. 
 
 The `compute/` directory contains a Docker/FastAPI service that runs the
-Python/HMMER pipeline for the web interface. Deploy it separately and set
+Python/HMMER tool for the web interface. Deploy it separately and set
 `NIF_FINDER_API_URL` in Vercel to the compute service `/analyze` endpoint.
 For Hugging Face Docker Spaces, use the repository root Dockerfile and set
 `NIF_FINDER_API_URL` to `https://<space-name>.hf.space/analyze`. If
