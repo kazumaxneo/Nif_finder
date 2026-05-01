@@ -254,13 +254,14 @@ export default function Home() {
             CPU
             <input type="number" min={1} max={24} value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
           </label>
-          <label>
+          <label className="wide-setting">
             E-value threshold
-            <select value={evalueThreshold} onChange={(event) => setEvalueThreshold(event.target.value)}>
-              <option value="1e-10">1e-10 default</option>
-              <option value="1e-20">1e-20 stricter</option>
-              <option value="1e-5">1e-5 more permissive</option>
-            </select>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={evalueThreshold}
+              onChange={(event) => setEvalueThreshold(event.target.value)}
+            />
           </label>
         </div>
         <p className="input-note">Changing E-value can affect sensitivity; the default is recommended.</p>
