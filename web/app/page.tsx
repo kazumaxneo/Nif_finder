@@ -226,11 +226,19 @@ export default function Home() {
             <span>Load protein FASTA</span>
             <input type="file" accept=".faa,.fa,.fasta,.txt" onChange={handleFile} />
           </label>
-          <button className="ghost-button" type="button" onClick={() => loadExampleDataset("known-nif")}>
-            Sample
-          </button>
         </div>
-        <p className="input-note">Max size: 10 MB. Sample is a demo set of known nifHDKENB proteins.</p>
+
+        <label className="field compact-field example-field">
+          Example dataset
+          <select value={exampleDataset} onChange={(event) => loadExampleDataset(event.target.value)}>
+            {exampleDatasets.map((dataset) => (
+              <option key={dataset.id} value={dataset.id}>
+                {dataset.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="input-note">Max size: 10 MB. Example is a demo set of known nifHDKENB proteins.</p>
 
         <div className="settings">
           <div className="section-title">
@@ -265,17 +273,6 @@ export default function Home() {
             Show only nif hits
           </label>
         </div>
-
-        <label className="field compact-field">
-          Example dataset
-          <select value={exampleDataset} onChange={(event) => loadExampleDataset(event.target.value)}>
-            {exampleDatasets.map((dataset) => (
-              <option key={dataset.id} value={dataset.id}>
-                {dataset.label}
-              </option>
-            ))}
-          </select>
-        </label>
 
         <button className="run-button" type="button" onClick={analyze} disabled={loading}>
           <Play size={18} aria-hidden />
