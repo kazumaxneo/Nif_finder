@@ -243,6 +243,15 @@ Nif-Finder successfully detected the full-length *nifH2* and 3 out of 4 *nifH1* 
 
 ---
 
+## Citation
+
+Uesaka K, Fujita Y. Accurate prediction of nitrogen fixation in cyanobacteria
+reveals the dynamic evolution driving high retention rate with mosaic
+distribution. *bioRxiv*. Posted January 15, 2026. DOI:
+[10.64898/2026.01.15.699626](https://doi.org/10.64898/2026.01.15.699626)
+
+---
+
 ## License
 
 MIT License
