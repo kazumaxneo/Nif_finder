@@ -1,0 +1,3 @@
+.codex-local/
+compute/app/__pycache__/
+*.pyc
