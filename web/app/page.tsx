@@ -226,6 +226,22 @@ export default function Home() {
             Submit a protein FASTA file to view predicted nif hits, completeness calls, and scatter plot output.
           </div>
         )}
+
+        <footer className="site-footer">
+          <p>
+            Citation: Uesaka K, Fujita Y. Accurate prediction of nitrogen fixation in cyanobacteria reveals the
+            dynamic evolution driving high retention rate with mosaic distribution. <em>bioRxiv</em>. 2026.{" "}
+            <a href="https://doi.org/10.64898/2026.01.15.699626" target="_blank" rel="noreferrer">
+              doi:10.64898/2026.01.15.699626
+            </a>
+          </p>
+          <p>
+            Source code:{" "}
+            <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
+              github.com/kazumaxneo/Nif_finder
+            </a>
+          </p>
+        </footer>
       </section>
     </main>
   );
