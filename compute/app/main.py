@@ -38,6 +38,7 @@ class ResultRecord(BaseModel):
 class AnalyzeResponse(BaseModel):
     records: list[ResultRecord]
     plotPngBase64: str | None = None
+    plotMessage: str | None = None
     runner: str = "nif-finder-compute"
 
 
@@ -94,13 +95,21 @@ def validate_fasta(fasta: str) -> str:
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, str | bool]:
     hmmscan = subprocess.run(["hmmscan", "-h"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     status = "ok" if hmmscan.returncode == 0 and NIF_FINDER_SCRIPT.is_file() else "not-ready"
+    try:
+        import matplotlib  # noqa: F401
+
+        matplotlib_available = True
+    except ImportError:
+        matplotlib_available = False
+
     return {
         "status": status,
         "nifFinderRoot": str(NIF_FINDER_ROOT),
         "nifFinderDb": str(NIF_FINDER_DB),
+        "matplotlib": matplotlib_available,
     }
 
 
@@ -167,7 +176,11 @@ def analyze(request: AnalyzeRequest, x_api_key: str | None = Header(default=None
 
         plot_path = Path(f"{out_prefix}_scatter.png")
         plot_png_base64 = None
+        plot_message = None
         if plot_path.is_file():
             plot_png_base64 = base64.b64encode(plot_path.read_bytes()).decode("ascii")
+        else:
+            output = "\n".join(part for part in [completed.stdout.strip(), completed.stderr.strip()] if part)
+            plot_message = output[-1000:] if output else "Nif-Finder did not produce a scatter plot."
 
-    return AnalyzeResponse(records=records, plotPngBase64=plot_png_base64)
+    return AnalyzeResponse(records=records, plotPngBase64=plot_png_base64, plotMessage=plot_message)
