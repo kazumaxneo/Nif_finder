@@ -124,6 +124,13 @@ input:focus {
   gap: 10px;
 }
 
+.input-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: -10px 0 0;
+}
+
 .file-button,
 .ghost-button,
 .run-button {
