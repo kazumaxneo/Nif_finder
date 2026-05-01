@@ -125,10 +125,15 @@ export async function POST(request: NextRequest) {
   }
 
   let upstream: Response;
+  const headers: Record<string, string> = { "content-type": "application/json" };
+  if (process.env.NIF_FINDER_API_KEY) {
+    headers["x-api-key"] = process.env.NIF_FINDER_API_KEY;
+  }
+
   try {
     upstream = await fetch(apiUrl, {
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers,
       body: JSON.stringify({
         fasta,
         jobs: body.jobs ?? 3,

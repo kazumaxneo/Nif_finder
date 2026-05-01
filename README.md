@@ -1,3 +1,10 @@
+---
+title: Nif-Finder Compute
+sdk: docker
+app_port: 7860
+license: mit
+---
+
 # Nif_finder
 
 A command-line tool for detecting and classifying nitrogen fixation (*nif*) genes:  **nifH**, **nifD**, **nifK**, **nifE**, **nifN**, and **nifB** from protein fasgta or genome fasta using HMMscan and nearest-neighbour (1-NN) classification on homology and protein length plot.
@@ -112,6 +119,10 @@ configuration.
 The `compute/` directory contains a Docker/FastAPI service that runs the
 Python/HMMER pipeline for the web interface. Deploy it separately and set
 `NIF_FINDER_API_URL` in Vercel to the compute service `/analyze` endpoint.
+For Hugging Face Docker Spaces, use the repository root Dockerfile and set
+`NIF_FINDER_API_URL` to `https://<space-name>.hf.space/analyze`. If
+`NIF_FINDER_API_KEY` is configured on the compute service, set the same secret in
+Vercel so the web app can authenticate compute requests.
 
 ---
 

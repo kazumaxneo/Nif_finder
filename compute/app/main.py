@@ -1,11 +1,12 @@
 import base64
+import hmac
 import os
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
@@ -16,6 +17,7 @@ NIF_FINDER_SCRIPT = NIF_FINDER_ROOT / "Nif_finderv0_24.py"
 PYTHON_BIN = os.environ.get("NIF_FINDER_PYTHON", "python")
 MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 REQUEST_TIMEOUT_SECONDS = int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "120"))
+NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
 
 
 class AnalyzeRequest(BaseModel):
@@ -103,7 +105,10 @@ def health() -> dict[str, str]:
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
-def analyze(request: AnalyzeRequest) -> AnalyzeResponse:
+def analyze(request: AnalyzeRequest, x_api_key: str | None = Header(default=None)) -> AnalyzeResponse:
+    if NIF_FINDER_API_KEY and not hmac.compare_digest(x_api_key or "", NIF_FINDER_API_KEY):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key.")
+
     fasta = validate_fasta(request.fasta)
 
     if not NIF_FINDER_SCRIPT.is_file():

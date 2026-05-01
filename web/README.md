@@ -54,6 +54,9 @@ The compute service should return:
 If `NIF_FINDER_API_URL` is not configured, the app returns a clear setup message
 instead of pretending to run the HMMER pipeline.
 
+If the compute API requires a shared key, set `NIF_FINDER_API_KEY` in Vercel.
+The web app sends it to the compute service as the `x-api-key` header.
+
 Vercel is best used here for the web UI and visualization layer. Production
 HMMER execution should run in a compute environment where the `hmmscan` binary,
 database files, memory, and request duration can be controlled reliably.
@@ -61,3 +64,6 @@ database files, memory, and request duration can be controlled reliably.
 This repository includes a Docker/FastAPI compute service in `../compute`.
 Deploy that service first, then set `NIF_FINDER_API_URL` to its `/analyze`
 endpoint and redeploy the Vercel app.
+
+For a free external compute host, create a Hugging Face Docker Space from the
+repository root. The root `Dockerfile` is configured for Spaces port `7860`.
