@@ -329,7 +329,7 @@ input:focus {
 .table-caption {
   color: #303b46;
   font-family: "Times New Roman", Times, serif;
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   line-height: 1.35;
 }
@@ -359,6 +359,10 @@ input:focus {
 
 .genomic-context-header {
   align-items: flex-end;
+}
+
+.final-download-row {
+  justify-content: flex-end;
 }
 
 .context-plot {

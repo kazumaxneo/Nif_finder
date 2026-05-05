@@ -67,6 +67,11 @@ type FastaEntry = {
   sequence: string;
 };
 
+type ZipEntry = {
+  name: string;
+  data: Uint8Array;
+};
+
 export default function Home() {
   const [fasta, setFasta] = useState("");
   const [genbank, setGenbank] = useState("");
@@ -127,6 +132,10 @@ export default function Home() {
 
   function downloadText(filename: string, content: string, type = "text/plain;charset=utf-8") {
     const blob = new Blob([content], { type });
+    downloadBlob(filename, blob);
+  }
+
+  function downloadBlob(filename: string, blob: Blob) {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -135,9 +144,8 @@ export default function Home() {
     URL.revokeObjectURL(url);
   }
 
-  function downloadTsv() {
-    const header = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness", "Operon"];
-    const rows = displayedRecords.map((record) => [
+  function resultRows(selectedRecords = displayedRecords) {
+    return selectedRecords.map((record) => [
       record.query,
       record.logEvalue.toFixed(2),
       String(record.alignLength),
@@ -146,26 +154,20 @@ export default function Home() {
       record.completeness,
       record.operonLabel ?? "",
     ]);
-    downloadText("nif_finder_results.tsv", [header, ...rows].map((row) => row.join("\t")).join("\n") + "\n");
+  }
+
+  function resultsTsv(selectedRecords = displayedRecords) {
+    const header = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness", "Operon"];
+    return [header, ...resultRows(selectedRecords)].map((row) => row.join("\t")).join("\n") + "\n";
   }
 
   function csvCell(value: string) {
     return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
   }
 
-  function downloadCsv() {
+  function resultsCsv(selectedRecords = displayedRecords) {
     const header = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness", "Operon"];
-    const rows = displayedRecords.map((record) => [
-      record.query,
-      record.logEvalue.toFixed(2),
-      String(record.alignLength),
-      record.queryLength == null ? "N/A" : String(record.queryLength),
-      record.prediction,
-      record.completeness,
-      record.operonLabel ?? "",
-    ]);
-    const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n") + "\n";
-    downloadText("nif_finder_results.csv", csv, "text/csv;charset=utf-8");
+    return [header, ...resultRows(selectedRecords)].map((row) => row.map(csvCell).join(",")).join("\n") + "\n";
   }
 
   function parseFastaEntries(input: string) {
@@ -213,7 +215,7 @@ export default function Home() {
       .join("\n");
   }
 
-  function downloadFasta(filename: string, selectedRecords: ResultRecord[]) {
+  function fastaContent(selectedRecords: ResultRecord[]) {
     const recordMap = new Map<string, ResultRecord>();
     for (const record of selectedRecords) {
       if (!recordMap.has(record.query)) {
@@ -222,8 +224,7 @@ export default function Home() {
     }
 
     const entries = parseFastaEntries(fasta).filter((entry) => recordMap.has(entry.id));
-    if (entries.length === 0) return;
-    downloadText(filename, `${formatFasta(entries, recordMap)}\n`, "text/x-fasta;charset=utf-8");
+    return entries.length === 0 ? "" : `${formatFasta(entries, recordMap)}\n`;
   }
 
   function displayPrediction(record: ResultRecord) {
@@ -234,17 +235,145 @@ export default function Home() {
     return record.completeness === "Full_operon" ? "Operon" : record.completeness;
   }
 
-  function downloadPlot() {
-    if (!response?.plotPngBase64) return;
-    const link = document.createElement("a");
-    link.href = `data:image/png;base64,${response.plotPngBase64}`;
-    link.download = "nif_finder_scatter.png";
-    link.click();
+  function textBytes(text: string) {
+    return new TextEncoder().encode(text);
   }
 
-  function downloadSvg(filename: string, svg: string | null | undefined) {
-    if (!svg) return;
-    downloadText(filename, svg, "image/svg+xml;charset=utf-8");
+  function base64Bytes(base64: string) {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes;
+  }
+
+  function crc32(data: Uint8Array) {
+    let crc = 0xffffffff;
+    for (const byte of data) {
+      crc ^= byte;
+      for (let i = 0; i < 8; i += 1) {
+        crc = crc & 1 ? (crc >>> 1) ^ 0xedb88320 : crc >>> 1;
+      }
+    }
+    return (crc ^ 0xffffffff) >>> 0;
+  }
+
+  function dosDateTime(date = new Date()) {
+    const time = (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2);
+    const day = Math.max(1, date.getDate());
+    const dosDate = ((date.getFullYear() - 1980) << 9) | ((date.getMonth() + 1) << 5) | day;
+    return { time, date: dosDate };
+  }
+
+  function concatBytes(parts: Uint8Array[]) {
+    const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+    const output = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const part of parts) {
+      output.set(part, offset);
+      offset += part.length;
+    }
+    return output;
+  }
+
+  function zipHeader(size: number, write: (view: DataView) => void) {
+    const bytes = new Uint8Array(size);
+    const view = new DataView(bytes.buffer);
+    write(view);
+    return bytes;
+  }
+
+  function createZip(entries: ZipEntry[]) {
+    const fileParts: Uint8Array[] = [];
+    const centralParts: Uint8Array[] = [];
+    let offset = 0;
+    const { time, date } = dosDateTime();
+
+    for (const entry of entries) {
+      const nameBytes = textBytes(entry.name);
+      const checksum = crc32(entry.data);
+      const localHeader = zipHeader(30, (view) => {
+        view.setUint32(0, 0x04034b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 0, true);
+        view.setUint16(8, 0, true);
+        view.setUint16(10, time, true);
+        view.setUint16(12, date, true);
+        view.setUint32(14, checksum, true);
+        view.setUint32(18, entry.data.length, true);
+        view.setUint32(22, entry.data.length, true);
+        view.setUint16(26, nameBytes.length, true);
+        view.setUint16(28, 0, true);
+      });
+      fileParts.push(localHeader, nameBytes, entry.data);
+
+      const centralHeader = zipHeader(46, (view) => {
+        view.setUint32(0, 0x02014b50, true);
+        view.setUint16(4, 20, true);
+        view.setUint16(6, 20, true);
+        view.setUint16(8, 0, true);
+        view.setUint16(10, 0, true);
+        view.setUint16(12, time, true);
+        view.setUint16(14, date, true);
+        view.setUint32(16, checksum, true);
+        view.setUint32(20, entry.data.length, true);
+        view.setUint32(24, entry.data.length, true);
+        view.setUint16(28, nameBytes.length, true);
+        view.setUint16(30, 0, true);
+        view.setUint16(32, 0, true);
+        view.setUint16(34, 0, true);
+        view.setUint16(36, 0, true);
+        view.setUint32(38, 0, true);
+        view.setUint32(42, offset, true);
+      });
+      centralParts.push(centralHeader, nameBytes);
+      offset += localHeader.length + nameBytes.length + entry.data.length;
+    }
+
+    const centralDirectory = concatBytes(centralParts);
+    const endHeader = zipHeader(22, (view) => {
+      view.setUint32(0, 0x06054b50, true);
+      view.setUint16(4, 0, true);
+      view.setUint16(6, 0, true);
+      view.setUint16(8, entries.length, true);
+      view.setUint16(10, entries.length, true);
+      view.setUint32(12, centralDirectory.length, true);
+      view.setUint32(16, offset, true);
+      view.setUint16(20, 0, true);
+    });
+    return concatBytes([...fileParts, centralDirectory, endHeader]);
+  }
+
+  function downloadZip() {
+    if (records.length === 0) return;
+
+    const entries: ZipEntry[] = [
+      { name: "nif_finder_results.tsv", data: textBytes(resultsTsv(records)) },
+      { name: "nif_finder_results.csv", data: textBytes(resultsCsv(records)) },
+    ];
+
+    const nifFasta = fastaContent(records.filter((record) => nifGenes.includes(record.prediction)));
+    if (nifFasta) {
+      entries.push({ name: "nif_finder_detected_nif.faa", data: textBytes(nifFasta) });
+    }
+
+    const allHitFasta = fastaContent(records);
+    if (allHitFasta) {
+      entries.push({ name: "nif_finder_all_hits.faa", data: textBytes(allHitFasta) });
+    }
+
+    if (response?.plotPngBase64) {
+      entries.push({ name: "nif_finder_scatter.png", data: base64Bytes(response.plotPngBase64) });
+    }
+    if (response?.genomicContextOverviewSvg) {
+      entries.push({ name: "nif_finder_genome_overview.svg", data: textBytes(response.genomicContextOverviewSvg) });
+    }
+    if (response?.genomicContextLocalSvg) {
+      entries.push({ name: "nif_finder_local_context.svg", data: textBytes(response.genomicContextLocalSvg) });
+    }
+
+    downloadBlob("nif_finder_results.zip", new Blob([createZip(entries)], { type: "application/zip" }));
   }
 
   function svgDataUri(svg: string) {
@@ -387,7 +516,6 @@ export default function Home() {
 
         <div className="settings run-settings">
           <div className="section-title">
-            <Settings size={17} aria-hidden />
             Run settings
           </div>
           <label>
@@ -408,7 +536,7 @@ export default function Home() {
             />
           </label>
         </div>
-        <p className="input-note">Changing E-value can affect sensitivity; the default is recommended.</p>
+        <p className="input-note">E-value can affect sensitivity; the default is recommended.</p>
 
         <div className="settings advanced-settings">
           <div className="section-title">
@@ -437,7 +565,6 @@ export default function Home() {
 
       <section className="results">
         <div className="summary-row">
-          <h2>Results</h2>
           <div className="counter">{totalNifCopies} nif copies identified</div>
         </div>
 
@@ -526,69 +653,8 @@ export default function Home() {
               </table>
             </div>
 
-            <div className="download-row" aria-label="Download results">
-              <button className="ghost-button" type="button" onClick={downloadTsv} disabled={displayedRecords.length === 0}>
-                <Download size={16} aria-hidden />
-                Download TSV
-              </button>
-              <button className="ghost-button" type="button" onClick={downloadCsv} disabled={displayedRecords.length === 0}>
-                <Download size={16} aria-hidden />
-                Download CSV
-              </button>
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={() =>
-                  downloadFasta(
-                    "nif_finder_detected_nif.faa",
-                    records.filter((record) => nifGenes.includes(record.prediction)),
-                  )
-                }
-                disabled={records.every((record) => !nifGenes.includes(record.prediction))}
-              >
-                <Download size={16} aria-hidden />
-                Download nif FASTA
-              </button>
-              <button
-                className="ghost-button"
-                type="button"
-                onClick={() => downloadFasta("nif_finder_all_hits.faa", records)}
-                disabled={records.length === 0}
-              >
-                <Download size={16} aria-hidden />
-                Download all hit FASTA
-              </button>
-              <button className="ghost-button" type="button" onClick={downloadPlot} disabled={!response?.plotPngBase64}>
-                <Download size={16} aria-hidden />
-                Download PNG
-              </button>
-            </div>
-
             {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg || response?.genomicContextMessage ? (
               <div className="genomic-context">
-                <div className="summary-row genomic-context-header">
-                  <div className="download-row" aria-label="Download genomic context">
-                    <button
-                      className="ghost-button"
-                      type="button"
-                      onClick={() => downloadSvg("nif_finder_genome_overview.svg", response?.genomicContextOverviewSvg)}
-                      disabled={!response?.genomicContextOverviewSvg}
-                    >
-                      <Download size={16} aria-hidden />
-                      Whole Genome SVG
-                    </button>
-                    <button
-                      className="ghost-button"
-                      type="button"
-                      onClick={() => downloadSvg("nif_finder_local_context.svg", response?.genomicContextLocalSvg)}
-                      disabled={!response?.genomicContextLocalSvg}
-                    >
-                      <Download size={16} aria-hidden />
-                      Enlarged View SVG
-                    </button>
-                  </div>
-                </div>
-
                 {response?.genomicContextMessage ? (
                   <div className="notice">
                     <AlertCircle size={20} aria-hidden />
@@ -624,6 +690,13 @@ export default function Home() {
                 ) : null}
               </div>
             ) : null}
+
+            <div className="download-row final-download-row" aria-label="Download results">
+              <button className="ghost-button" type="button" onClick={downloadZip} disabled={records.length === 0}>
+                <Download size={16} aria-hidden />
+                Download ZIP
+              </button>
+            </div>
           </>
         ) : (
           <div className="empty-state">
@@ -633,14 +706,16 @@ export default function Home() {
 
         <footer className="site-footer">
           <p>
-            Citation: Uesaka K, Fujita Y. Accurate prediction of nitrogen fixation in cyanobacteria reveals the
-            dynamic evolution driving high retention rate with mosaic distribution. <em>bioRxiv</em>. 2026.{" "}
+            Citation
+            <br />
+            Uesaka K, Fujita Y. Accurate prediction of nitrogen fixation in cyanobacteria reveals the dynamic evolution
+            driving high retention rate with mosaic distribution. <em>bioRxiv</em>. 2026.{" "}
             <a href="https://doi.org/10.64898/2026.01.15.699626" target="_blank" rel="noreferrer">
               doi:10.64898/2026.01.15.699626
             </a>
           </p>
           <p>
-            Source code:{" "}
+            Code:{" "}
             <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
               github.com/kazumaxneo/Nif_finder
             </a>
