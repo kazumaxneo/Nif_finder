@@ -409,7 +409,7 @@ export default function Home() {
         <div className="upload-row genbank-upload">
           <label className="file-button" title="Load an optional GenBank file for genomic context plots">
             <FileUp size={18} aria-hidden />
-            <span>Load GenBank (necessary only for nif plotting on the genome)</span>
+            <span>Load GenBank</span>
             <input type="file" accept=".gb,.gbk,.gbff,.genbank,.txt" onChange={handleGenbankFile} />
           </label>
           {genbank ? (
