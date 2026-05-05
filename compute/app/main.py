@@ -38,6 +38,7 @@ GENE_COLORS = {
 }
 LOCAL_CONTEXT_PADDING = int(os.environ.get("LOCAL_CONTEXT_PADDING", "10000"))
 LOCAL_CONTEXT_MERGE_DISTANCE = int(os.environ.get("LOCAL_CONTEXT_MERGE_DISTANCE", "20000"))
+OVERVIEW_HIDE_COVERAGE = float(os.environ.get("OVERVIEW_HIDE_COVERAGE", "0.5"))
 TRACK_LINE_KWS = {"color": "#20242a", "lw": 0.45, "zorder": 0}
 
 
@@ -400,6 +401,28 @@ def group_local_regions(matches: list[MatchedHit]) -> list[tuple[str, int, int, 
     return regions
 
 
+def should_hide_whole_genome_view(matches: list[MatchedHit]) -> bool:
+    regions = group_local_regions(matches)
+    by_contig: dict[str, list[tuple[str, int, int, list[MatchedHit]]]] = {}
+    for region in regions:
+        by_contig.setdefault(region[0], []).append(region)
+
+    if not by_contig:
+        return False
+
+    for contig_regions in by_contig.values():
+        if len(contig_regions) != 1:
+            return False
+        _contig, start, end, region_matches = contig_regions[0]
+        contig_length = region_matches[0].feature.contig_length
+        if contig_length <= 0:
+            return False
+        coverage = (end - start) / contig_length
+        if coverage < OVERVIEW_HIDE_COVERAGE:
+            return False
+    return True
+
+
 def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature], out_path: Path) -> None:
     regions = group_local_regions(matches)
     fig_height = max(0.55, min(0.9, 4.5 / max(1, len(regions))))
@@ -457,10 +480,12 @@ def build_genomic_context(
             }
         overview_path = tmp_dir / "genomic_context_overview.svg"
         local_path = tmp_dir / "genomic_context_local.svg"
-        build_overview_svg(matches, overview_path)
+        hide_overview = should_hide_whole_genome_view(matches)
+        if not hide_overview:
+            build_overview_svg(matches, overview_path)
         build_local_context_svg(matches, features, local_path)
         return {
-            "genomicContextOverviewSvg": svg_to_text(overview_path),
+            "genomicContextOverviewSvg": None if hide_overview else svg_to_text(overview_path),
             "genomicContextLocalSvg": svg_to_text(local_path),
             "genomicContextMessage": None,
         }

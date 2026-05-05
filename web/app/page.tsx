@@ -287,7 +287,7 @@ export default function Home() {
         <div className="upload-row genbank-upload">
           <label className="file-button" title="Load an optional GenBank file for genomic context plots">
             <FileUp size={18} aria-hidden />
-            <span>Load GenBank</span>
+            <span>Load GenBank (necessary only for nif plotting on the genome)</span>
             <input type="file" accept=".gb,.gbk,.gbff,.genbank,.txt" onChange={handleGenbankFile} />
           </label>
           {genbank ? (
@@ -304,7 +304,7 @@ export default function Home() {
           ) : null}
         </div>
         <p className="input-note">
-          Optional GenBank file for genomic context. {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
+          Optional GenBank file for genome plotting. {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
         </p>
 
         <label className="field compact-field example-field">
@@ -484,7 +484,7 @@ export default function Home() {
                       disabled={!response?.genomicContextOverviewSvg}
                     >
                       <Download size={16} aria-hidden />
-                      Overview SVG
+                      Whole Genome SVG
                     </button>
                     <button
                       className="ghost-button"
@@ -493,7 +493,7 @@ export default function Home() {
                       disabled={!response?.genomicContextLocalSvg}
                     >
                       <Download size={16} aria-hidden />
-                      Local SVG
+                      Enlarged View SVG
                     </button>
                   </div>
                 </div>
@@ -512,12 +512,12 @@ export default function Home() {
                   <div className="chart-panel">
                     <div className="section-title">
                       <BarChart3 size={18} aria-hidden />
-                      Genome overview
+                      Whole Genome View
                     </div>
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextOverviewSvg)}
-                      alt="Genome overview of matched nif gene locations"
+                      alt="Whole genome view of matched nif gene locations"
                     />
                   </div>
                 ) : null}
@@ -526,12 +526,12 @@ export default function Home() {
                   <div className="chart-panel">
                     <div className="section-title">
                       <BarChart3 size={18} aria-hidden />
-                      Local context
+                      Enlarged View
                     </div>
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextLocalSvg)}
-                      alt="Local genomic context around matched nif hits"
+                      alt="Enlarged genomic view around matched nif hits"
                     />
                   </div>
                 ) : null}

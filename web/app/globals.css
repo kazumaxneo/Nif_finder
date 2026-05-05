@@ -169,6 +169,12 @@ input:focus {
   position: relative;
 }
 
+.file-button span {
+  line-height: 1.25;
+  min-width: 0;
+  text-align: left;
+}
+
 .file-button input {
   inset: 0;
   opacity: 0;
