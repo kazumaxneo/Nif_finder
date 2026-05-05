@@ -13,6 +13,7 @@ const execFileAsync = promisify(execFile);
 
 type AnalyzeRequest = {
   fasta?: string;
+  genbank?: string;
   jobs?: number;
   cpu?: number;
   plot?: boolean;
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
       headers,
       body: JSON.stringify({
         fasta,
+        genbank: body.genbank?.trim() || undefined,
         jobs: body.jobs ?? 3,
         cpu: body.cpu ?? 6,
         plot: body.plot ?? true,

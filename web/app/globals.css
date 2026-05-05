@@ -7,6 +7,8 @@
   --line: #d8dee5;
   --primary: #0f766e;
   --primary-strong: #0b5f59;
+  --action: #6ecbd2;
+  --action-strong: #4eb4bd;
   --accent: #b54708;
   --warn-bg: #fff7ed;
   --warn-line: #fdba74;
@@ -53,15 +55,7 @@ textarea {
 }
 
 .brand {
-  align-items: flex-start;
-  display: flex;
-  gap: 12px;
-}
-
-.brand svg {
-  color: var(--primary);
-  flex: 0 0 auto;
-  margin-top: 4px;
+  display: block;
 }
 
 .brand h1,
@@ -123,8 +117,8 @@ select {
 textarea:focus,
 select:focus,
 input:focus {
-  border-color: var(--primary);
-  outline: 3px solid rgba(15, 118, 110, 0.16);
+  border-color: #17202a;
+  outline: 2px solid rgba(23, 32, 42, 0.16);
 }
 
 .upload-row,
@@ -143,6 +137,10 @@ input:focus {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.genbank-upload {
+  margin-top: -8px;
 }
 
 .input-note {
@@ -181,6 +179,11 @@ input:focus {
   background: transparent;
   border: 1px solid var(--line);
   color: var(--ink);
+}
+
+.compact-button {
+  min-height: 42px;
+  padding-inline: 12px;
 }
 
 .settings {
@@ -243,15 +246,15 @@ input:focus {
 }
 
 .toggle-row input {
-  accent-color: var(--primary);
+  accent-color: #17202a;
   height: 16px;
   width: 16px;
 }
 
 .run-button {
-  background: var(--primary);
-  border: 1px solid var(--primary);
-  color: white;
+  background: var(--action);
+  border: 1px solid #3fa4ae;
+  color: #0d3035;
   font-weight: 750;
 }
 
@@ -261,7 +264,7 @@ input:focus {
 }
 
 .run-button:hover:not(:disabled) {
-  background: var(--primary-strong);
+  background: var(--action-strong);
 }
 
 .results {
@@ -284,10 +287,10 @@ input:focus {
 }
 
 .counter {
-  background: #e7f5f2;
-  border: 1px solid #b6dfd8;
+  background: #e8f8fb;
+  border: 1px solid #8fd6df;
   border-radius: 8px;
-  color: var(--primary-strong);
+  color: #155e66;
   font-weight: 800;
   padding: 8px 12px;
 }
@@ -326,6 +329,27 @@ input:focus {
   border-radius: 8px;
   display: block;
   height: auto;
+  width: 100%;
+}
+
+.genomic-context {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.genomic-context-header {
+  align-items: flex-end;
+}
+
+.context-plot {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  max-height: 720px;
+  object-fit: contain;
   width: 100%;
 }
 

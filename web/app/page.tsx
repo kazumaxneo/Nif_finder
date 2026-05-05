@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
-import { Activity, AlertCircle, BarChart3, Download, FileUp, Play, Settings } from "lucide-react";
+import { AlertCircle, BarChart3, Download, FileUp, Play, Settings } from "lucide-react";
 
 type ResultRecord = {
   query: string;
@@ -15,6 +15,9 @@ type ResultRecord = {
 type ApiResponse = {
   records?: ResultRecord[];
   plotPngBase64?: string | null;
+  genomicContextOverviewSvg?: string | null;
+  genomicContextLocalSvg?: string | null;
+  genomicContextMessage?: string | null;
   error?: string;
   setup?: string;
   detail?: string;
@@ -99,6 +102,8 @@ const exampleDatasets = [
 
 export default function Home() {
   const [fasta, setFasta] = useState("");
+  const [genbank, setGenbank] = useState("");
+  const [genbankFileName, setGenbankFileName] = useState("");
   const [jobs, setJobs] = useState(3);
   const [cpu, setCpu] = useState(6);
   const [plotOutput, setPlotOutput] = useState(true);
@@ -138,6 +143,8 @@ export default function Home() {
     } else {
       setFasta("");
     }
+    setGenbank("");
+    setGenbankFileName("");
   }
 
   function downloadText(filename: string, content: string, type = "text/plain;charset=utf-8") {
@@ -171,6 +178,15 @@ export default function Home() {
     link.click();
   }
 
+  function downloadSvg(filename: string, svg: string | null | undefined) {
+    if (!svg) return;
+    downloadText(filename, svg, "image/svg+xml;charset=utf-8");
+  }
+
+  function svgDataUri(svg: string) {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  }
+
   async function analyze() {
     setLoading(true);
     setResponse(null);
@@ -178,7 +194,14 @@ export default function Home() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ fasta, jobs, cpu, plot: plotOutput, evalue: Number(evalueThreshold) }),
+        body: JSON.stringify({
+          fasta,
+          genbank: genbank.trim() || undefined,
+          jobs,
+          cpu,
+          plot: plotOutput,
+          evalue: Number(evalueThreshold),
+        }),
       });
       const text = await res.text();
       const data = text
@@ -200,11 +223,21 @@ export default function Home() {
     reader.readAsText(file);
   }
 
+  function handleGenbankFile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      setGenbank(String(reader.result ?? ""));
+      setGenbankFileName(file.name);
+    };
+    reader.readAsText(file);
+  }
+
   return (
     <main className="workspace">
       <aside className="sidebar">
         <div className="brand">
-          <Activity size={26} aria-hidden />
           <div>
             <h1>Nif-Finder Web</h1>
             <p>NifHDKENB identification from protein fasta</p>
@@ -227,6 +260,29 @@ export default function Home() {
             <input type="file" accept=".faa,.fa,.fasta,.txt" onChange={handleFile} />
           </label>
         </div>
+
+        <div className="upload-row genbank-upload">
+          <label className="file-button" title="Load an optional GenBank file for genomic context plots">
+            <FileUp size={18} aria-hidden />
+            <span>Load GenBank</span>
+            <input type="file" accept=".gb,.gbk,.gbff,.genbank,.txt" onChange={handleGenbankFile} />
+          </label>
+          {genbank ? (
+            <button
+              className="ghost-button compact-button"
+              type="button"
+              onClick={() => {
+                setGenbank("");
+                setGenbankFileName("");
+              }}
+            >
+              Clear
+            </button>
+          ) : null}
+        </div>
+        <p className="input-note">
+          Optional GenBank file for genomic context. {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
+        </p>
 
         <label className="field compact-field example-field">
           Example dataset
@@ -296,7 +352,7 @@ export default function Home() {
             <p className="eyebrow">Results</p>
             <h2>Nif hit overview</h2>
           </div>
-          <div className="counter">{totalNifCopies} nif copies</div>
+          <div className="counter">{totalNifCopies} nif copies identified</div>
         </div>
 
         {response?.error ? (
@@ -320,7 +376,7 @@ export default function Home() {
                     <th>Gene</th>
                     <th>Total copies</th>
                     <th>Full-length</th>
-                    <th>Incomplete</th>
+                    <th>Fragment</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -389,6 +445,75 @@ export default function Home() {
                 Download PNG
               </button>
             </div>
+
+            {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg || response?.genomicContextMessage ? (
+              <div className="genomic-context">
+                <div className="summary-row genomic-context-header">
+                  <div>
+                    <p className="eyebrow">GenBank context</p>
+                    <h2>Nif gene locations</h2>
+                  </div>
+                  <div className="download-row" aria-label="Download genomic context">
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => downloadSvg("nif_finder_genome_overview.svg", response?.genomicContextOverviewSvg)}
+                      disabled={!response?.genomicContextOverviewSvg}
+                    >
+                      <Download size={16} aria-hidden />
+                      Overview SVG
+                    </button>
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() => downloadSvg("nif_finder_local_context.svg", response?.genomicContextLocalSvg)}
+                      disabled={!response?.genomicContextLocalSvg}
+                    >
+                      <Download size={16} aria-hidden />
+                      Local SVG
+                    </button>
+                  </div>
+                </div>
+
+                {response?.genomicContextMessage ? (
+                  <div className="notice">
+                    <AlertCircle size={20} aria-hidden />
+                    <div>
+                      <strong>Genomic context was not plotted.</strong>
+                      <p>{response.genomicContextMessage}</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {response?.genomicContextOverviewSvg ? (
+                  <div className="chart-panel">
+                    <div className="section-title">
+                      <BarChart3 size={18} aria-hidden />
+                      Genome overview
+                    </div>
+                    <img
+                      className="context-plot"
+                      src={svgDataUri(response.genomicContextOverviewSvg)}
+                      alt="Genome overview of matched nif gene locations"
+                    />
+                  </div>
+                ) : null}
+
+                {response?.genomicContextLocalSvg ? (
+                  <div className="chart-panel">
+                    <div className="section-title">
+                      <BarChart3 size={18} aria-hidden />
+                      Local context
+                    </div>
+                    <img
+                      className="context-plot"
+                      src={svgDataUri(response.genomicContextLocalSvg)}
+                      alt="Local genomic context around matched nif hits"
+                    />
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </>
         ) : (
           <div className="empty-state">
