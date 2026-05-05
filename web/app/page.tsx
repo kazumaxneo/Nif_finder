@@ -101,14 +101,34 @@ const exampleDatasets = [
   { id: "known-nif", label: "Known nifHDKENB demo" },
 ];
 
-const figure1Caption =
-  "Figure 1. 2D Similarity Plot of homology search for the six Nif proteins encoded by nifHDKENB of various bacterial genomes. The relationship between –log10(E-value) of the Hmmer3 search using nif HMM profiles and the length of the hit protein against proteomes of 586 cyanobacterial strains and other bacterial strains are plotted. The color indicates the single best hit protein from SWISS-PROT sequences. Circle plots represent hit from complete genome assembly, while triangle plots represent hits from draft genome assembly. The star plot represents the hits of the Nif fusion proteins.";
+const figure1Caption = (
+  <>
+    Figure 1. 2D Similarity Plot of homology search for the six Nif proteins encoded by <em>nifHDKENB</em> of
+    various bacterial genomes. The relationship between –log10(E-value) of the Hmmer3 search using <em>nif</em> HMM
+    profiles and the length of the hit protein against proteomes of 586 cyanobacterial strains and other bacterial
+    strains are plotted. The color indicates the single best hit protein from SWISS-PROT sequences. Circle plots
+    represent hit from complete genome assembly, while triangle plots represent hits from draft genome assembly. The
+    star plot represents the hits of the Nif fusion proteins.
+  </>
+);
 
-const figure2Caption =
-  "Figure 2. Genomic locations of nif genes identified by Nif-Finder. Colored arrows indicate nif genes identified by Nif-Finder, and gray arrows indicate neighboring coding sequences. Enlarged regional views show local genomic neighborhoods around nif hits. A whole-genome view is shown when it provides additional positional context and is omitted when redundant. Labels below highlighted arrows indicate hit status: full-length, fragment, or operon.";
+const figure2Caption = (
+  <>
+    Figure 2. Genomic locations of <em>nif</em> genes identified by Nif-Finder. Colored arrows indicate <em>nif</em>{" "}
+    genes identified by Nif-Finder, and gray arrows indicate neighboring coding sequences. Enlarged regional views show
+    local genomic neighborhoods around <em>nif</em> hits. A whole-genome view is shown when it provides additional
+    positional context and is omitted when redundant. Labels below highlighted arrows indicate hit status: full-length,
+    fragment, or operon.
+  </>
+);
 
-const table2Caption =
-  "Table 2. Detailed list of Nif-Finder hits. Query indicates the input protein identifier, Prediction indicates the best Nif-Finder assignment, Completeness indicates full-length, operon, fragment, or unclassifiable status, and the remaining columns report HMMER search score and protein length metrics.";
+const table2Caption = (
+  <>
+    Table 2. Detailed list of Nif-Finder hits. Query indicates the input protein identifier, Prediction indicates the
+    best Nif-Finder assignment, Completeness indicates full-length, operon, fragment, or unclassifiable status, and the
+    remaining columns report HMMER search score and protein length metrics.
+  </>
+);
 
 type FastaEntry = {
   id: string;
@@ -406,7 +426,8 @@ export default function Home() {
           ) : null}
         </div>
         <p className="input-note">
-          Optional GenBank file for genome plotting. {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
+          Optional GenBank file for genome plotting. Max size: 25 MB.{" "}
+          {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
         </p>
 
         <label className="field compact-field example-field">
@@ -492,7 +513,9 @@ export default function Home() {
         {records.length > 0 ? (
           <>
             <div className="summary-table-wrap">
-              <p className="table-caption">Table 1. Summary of nif genes identified by Nif-Finder.</p>
+              <p className="table-caption">
+                Table 1. Summary of <em>nif</em> genes identified by Nif-Finder.
+              </p>
               <table className="summary-table">
                 <thead>
                   <tr>
