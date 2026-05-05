@@ -29,12 +29,12 @@ NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
 TOKEN_MAX_AGE_SECONDS = int(os.environ.get("TOKEN_MAX_AGE_SECONDS", "600"))
 NIF_GENES = {"nifH", "nifD", "nifK", "nifE", "nifN", "nifB"}
 GENE_COLORS = {
-    "nifH": "#0f766e",
-    "nifD": "#2563eb",
-    "nifK": "#7c3aed",
-    "nifE": "#b45309",
-    "nifN": "#be123c",
-    "nifB": "#15803d",
+    "nifH": "#E74C3C",
+    "nifD": "#3498DB",
+    "nifK": "#2ECC71",
+    "nifE": "#F39C12",
+    "nifN": "#9B59B6",
+    "nifB": "#1ABC9C",
 }
 LOCAL_CONTEXT_PADDING = int(os.environ.get("LOCAL_CONTEXT_PADDING", "10000"))
 LOCAL_CONTEXT_MERGE_DISTANCE = int(os.environ.get("LOCAL_CONTEXT_MERGE_DISTANCE", "20000"))
