@@ -1,8 +1,10 @@
 import base64
+import hashlib
 import hmac
 import os
 import subprocess
 import tempfile
+import time
 from io import StringIO
 from pathlib import Path
 from typing import Any
@@ -24,6 +26,7 @@ MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 MAX_GENBANK_BYTES = int(os.environ.get("MAX_GENBANK_BYTES", str(25 * 1024 * 1024)))
 REQUEST_TIMEOUT_SECONDS = int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "120"))
 NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
+TOKEN_MAX_AGE_SECONDS = int(os.environ.get("TOKEN_MAX_AGE_SECONDS", "600"))
 NIF_GENES = {"nifH", "nifD", "nifK", "nifE", "nifN", "nifB"}
 GENE_COLORS = {
     "nifH": "#0f766e",
@@ -465,6 +468,24 @@ def build_genomic_context(
         return {"genomicContextMessage": f"Genomic context visualization failed: {exc}"}
 
 
+def validate_analysis_token(token: str | None) -> bool:
+    if not token or not NIF_FINDER_API_KEY:
+        return False
+    parts = token.split(".")
+    if len(parts) != 3:
+        return False
+    expires, nonce, signature = parts
+    if not expires.isdigit():
+        return False
+    expires_at = int(expires)
+    now = int(time.time())
+    if expires_at < now or expires_at > now + TOKEN_MAX_AGE_SECONDS:
+        return False
+    message = f"{expires}.{nonce}".encode("utf-8")
+    expected = hmac.new(NIF_FINDER_API_KEY.encode("utf-8"), message, hashlib.sha256).hexdigest()
+    return hmac.compare_digest(signature, expected)
+
+
 @app.get("/health")
 def health() -> dict[str, str | bool]:
     hmmscan = subprocess.run(["hmmscan", "-h"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -485,8 +506,14 @@ def health() -> dict[str, str | bool]:
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
-def analyze(request: AnalyzeRequest, x_api_key: str | None = Header(default=None)) -> AnalyzeResponse:
-    if NIF_FINDER_API_KEY and not hmac.compare_digest(x_api_key or "", NIF_FINDER_API_KEY):
+def analyze(
+    request: AnalyzeRequest,
+    x_api_key: str | None = Header(default=None),
+    x_analysis_token: str | None = Header(default=None),
+) -> AnalyzeResponse:
+    api_key_valid = bool(NIF_FINDER_API_KEY and hmac.compare_digest(x_api_key or "", NIF_FINDER_API_KEY))
+    token_valid = validate_analysis_token(x_analysis_token)
+    if NIF_FINDER_API_KEY and not (api_key_valid or token_valid):
         raise HTTPException(status_code=401, detail="Invalid or missing API key.")
 
     fasta = validate_fasta(request.fasta)

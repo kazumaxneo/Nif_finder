@@ -191,18 +191,41 @@ export default function Home() {
     setLoading(true);
     setResponse(null);
     try {
-      const res = await fetch("/api/analyze", {
+      const requestBody = JSON.stringify({
+        fasta,
+        genbank: genbank.trim() || undefined,
+        jobs,
+        cpu,
+        plot: plotOutput,
+        evalue: Number(evalueThreshold),
+      });
+      let res: Response;
+      if (requestBody.length > 3_500_000) {
+        const tokenRes = await fetch("/api/compute-token", { method: "POST" });
+        const tokenData = (await tokenRes.json()) as { apiUrl?: string; token?: string };
+        if (tokenRes.ok && tokenData.apiUrl && tokenData.token) {
+          res = await fetch(tokenData.apiUrl, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-analysis-token": tokenData.token,
+            },
+            body: requestBody,
+          });
+        } else {
+          res = await fetch("/api/analyze", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: requestBody,
+          });
+        }
+      } else {
+        res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          fasta,
-          genbank: genbank.trim() || undefined,
-          jobs,
-          cpu,
-          plot: plotOutput,
-          evalue: Number(evalueThreshold),
-        }),
-      });
+          body: requestBody,
+        });
+      }
       const text = await res.text();
       const data = text
         ? (JSON.parse(text) as ApiResponse)
