@@ -442,6 +442,19 @@ th {
   margin: 4px 0;
 }
 
+.software-citations {
+  margin: 4px 0;
+}
+
+.software-citations ul {
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+
+.software-citations li {
+  margin: 2px 0;
+}
+
 .site-footer a {
   color: var(--primary-strong);
   font-weight: 700;
