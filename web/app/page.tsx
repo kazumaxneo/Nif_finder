@@ -639,6 +639,12 @@ export default function Home() {
               doi:10.64898/2026.01.15.699626
             </a>
           </p>
+          <p>
+            Source code:{" "}
+            <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
+              github.com/kazumaxneo/Nif_finder
+            </a>
+          </p>
           <div className="software-citations">
             <p>Software citations:</p>
             <ul>
@@ -656,12 +662,6 @@ export default function Home() {
               </li>
             </ul>
           </div>
-          <p>
-            Source code:{" "}
-            <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
-              github.com/kazumaxneo/Nif_finder
-            </a>
-          </p>
         </footer>
       </section>
     </main>

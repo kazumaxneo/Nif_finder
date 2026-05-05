@@ -293,12 +293,8 @@ input:focus {
 }
 
 .counter {
-  background: #e8f8fb;
-  border: 1px solid #8fd6df;
-  border-radius: 8px;
-  color: #155e66;
+  color: var(--ink);
   font-weight: 800;
-  padding: 8px 12px;
 }
 
 .notice {
@@ -456,7 +452,7 @@ th {
 }
 
 .site-footer a {
-  color: var(--primary-strong);
+  color: var(--ink);
   font-weight: 700;
   text-decoration: none;
 }
