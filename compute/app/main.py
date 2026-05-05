@@ -351,6 +351,14 @@ def add_feature(track: Any, feature: CdsFeature, *, label: str = "", color: str 
     )
 
 
+def local_hit_label(hit: MatchedHit) -> str:
+    if hit.completeness in ("Full", "Full_operon"):
+        return f"{hit.prediction} (full)"
+    if hit.completeness == "Fragment":
+        return f"{hit.prediction} (frag.)"
+    return hit.prediction
+
+
 def clip_feature_to_region(feature: CdsFeature, start: int, end: int) -> CdsFeature:
     return feature.model_copy(update={"start": max(feature.start, start), "end": min(feature.end, end)})
 
@@ -451,7 +459,7 @@ def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature
                 add_feature(
                     track,
                     clipped_feature,
-                    label=hit.prediction,
+                    label=local_hit_label(hit),
                     color=GENE_COLORS.get(hit.prediction, "#0f766e"),
                 )
             else:
