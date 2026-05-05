@@ -351,12 +351,28 @@ def add_feature(track: Any, feature: CdsFeature, *, label: str = "", color: str 
     )
 
 
-def local_hit_label(hit: MatchedHit) -> str:
+def local_hit_suffix(hit: MatchedHit) -> str:
     if hit.completeness in ("Full", "Full_operon"):
-        return f"{hit.prediction} (full)"
+        return "(full)"
     if hit.completeness == "Fragment":
-        return f"{hit.prediction} (frag.)"
-    return hit.prediction
+        return "(frag.)"
+    return ""
+
+
+def add_hit_suffix(track: Any, feature: CdsFeature, hit: MatchedHit) -> None:
+    suffix = local_hit_suffix(hit)
+    if not suffix:
+        return
+    track.add_text(
+        (feature.start + feature.end) / 2,
+        suffix,
+        size=8,
+        vpos="bottom",
+        hpos="center",
+        ymargin=0.2,
+        rotation=0,
+        color=GENE_COLORS.get(hit.prediction, "#0f766e"),
+    )
 
 
 def clip_feature_to_region(feature: CdsFeature, start: int, end: int) -> CdsFeature:
@@ -459,9 +475,10 @@ def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature
                 add_feature(
                     track,
                     clipped_feature,
-                    label=local_hit_label(hit),
+                    label=hit.prediction,
                     color=GENE_COLORS.get(hit.prediction, "#0f766e"),
                 )
+                add_hit_suffix(track, clipped_feature, hit)
             else:
                 add_feature(track, clipped_feature)
     gv.savefig(out_path, dpi=140, pad_inches=0.25)
