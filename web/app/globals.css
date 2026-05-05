@@ -329,6 +329,22 @@ input:focus {
   margin-bottom: 12px;
 }
 
+.figure-caption,
+.table-caption {
+  color: #303b46;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.figure-caption {
+  margin: 10px 2px 0;
+}
+
+.table-caption {
+  margin: 12px 12px 8px;
+}
+
 .nif-plot {
   background: white;
   border: 1px solid var(--line);

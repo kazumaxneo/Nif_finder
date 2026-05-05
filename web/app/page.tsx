@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
-import { AlertCircle, BarChart3, Download, FileUp, Play, Settings } from "lucide-react";
+import { AlertCircle, Download, FileUp, Play, Settings } from "lucide-react";
 
 type ResultRecord = {
   query: string;
@@ -100,6 +100,12 @@ const exampleDatasets = [
   { id: "none", label: "None" },
   { id: "known-nif", label: "Known nifHDKENB demo" },
 ];
+
+const figure1Caption =
+  "Figure 1. 2D Similarity Plot of homology search for the six Nif proteins encoded by nifHDKENB of various bacterial genomes. The relationship between –log10(E-value) of the Hmmer3 search using nif HMM profiles and the length of the hit protein against proteomes of 586 cyanobacterial strains and other bacterial strains are plotted. The color indicates the single best hit protein from SWISS-PROT sequences. Circle plots represent hit from complete genome assembly, while triangle plots represent hits from draft genome assembly. The star plot represents the hits of the Nif fusion proteins.";
+
+const figure2Caption =
+  "Figure 2. Genomic locations of nif genes identified by Nif-Finder. Colored arrows indicate nif genes identified by Nif-Finder, and gray arrows indicate neighboring coding sequences. Enlarged regional views show local genomic neighborhoods around nif hits. A whole-genome view is shown when it provides additional positional context and is omitted when redundant. Labels below highlighted arrows indicate hit status: full-length, fragment, or operon.";
 
 type FastaEntry = {
   id: string;
@@ -445,10 +451,7 @@ export default function Home() {
 
       <section className="results">
         <div className="summary-row">
-          <div>
-            <p className="eyebrow">Results</p>
-            <h2>Nif hit overview</h2>
-          </div>
+          <h2>Results</h2>
           <div className="counter">{totalNifCopies} nif copies identified</div>
         </div>
 
@@ -467,6 +470,7 @@ export default function Home() {
         {records.length > 0 ? (
           <>
             <div className="summary-table-wrap">
+              <p className="table-caption">Table 1. Summary of nif genes identified by Nif-Finder.</p>
               <table className="summary-table">
                 <thead>
                   <tr>
@@ -492,16 +496,15 @@ export default function Home() {
             </div>
 
             <div className="chart-panel">
-              <div className="section-title">
-                <BarChart3 size={18} aria-hidden />
-                Nif-Finder reference plot
-              </div>
               {response?.plotPngBase64 ? (
-                <img
-                  className="nif-plot"
-                  src={`data:image/png;base64,${response.plotPngBase64}`}
-                  alt="Nif-Finder scatter plot"
-                />
+                <>
+                  <img
+                    className="nif-plot"
+                    src={`data:image/png;base64,${response.plotPngBase64}`}
+                    alt="Nif-Finder scatter plot"
+                  />
+                  <p className="figure-caption">{figure1Caption}</p>
+                </>
               ) : (
                 <div className="empty-state compact">No plot image was returned by the compute API.</div>
               )}
@@ -571,10 +574,6 @@ export default function Home() {
             {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg || response?.genomicContextMessage ? (
               <div className="genomic-context">
                 <div className="summary-row genomic-context-header">
-                  <div>
-                    <p className="eyebrow">GenBank context</p>
-                    <h2>Nif gene locations</h2>
-                  </div>
                   <div className="download-row" aria-label="Download genomic context">
                     <button
                       className="ghost-button"
@@ -609,10 +608,6 @@ export default function Home() {
 
                 {response?.genomicContextOverviewSvg ? (
                   <div className="chart-panel">
-                    <div className="section-title">
-                      <BarChart3 size={18} aria-hidden />
-                      Whole Genome View
-                    </div>
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextOverviewSvg)}
@@ -623,16 +618,16 @@ export default function Home() {
 
                 {response?.genomicContextLocalSvg ? (
                   <div className="chart-panel">
-                    <div className="section-title">
-                      <BarChart3 size={18} aria-hidden />
-                      Enlarged View
-                    </div>
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextLocalSvg)}
                       alt="Enlarged genomic view around matched nif hits"
                     />
                   </div>
+                ) : null}
+
+                {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg ? (
+                  <p className="figure-caption">{figure2Caption}</p>
                 ) : null}
               </div>
             ) : null}
