@@ -107,6 +107,9 @@ const figure1Caption =
 const figure2Caption =
   "Figure 2. Genomic locations of nif genes identified by Nif-Finder. Colored arrows indicate nif genes identified by Nif-Finder, and gray arrows indicate neighboring coding sequences. Enlarged regional views show local genomic neighborhoods around nif hits. A whole-genome view is shown when it provides additional positional context and is omitted when redundant. Labels below highlighted arrows indicate hit status: full-length, fragment, or operon.";
 
+const table2Caption =
+  "Table 2. Detailed list of Nif-Finder hits. Query indicates the input protein identifier, Prediction indicates the best Nif-Finder assignment, Completeness indicates full-length, operon, fragment, or unclassifiable status, and the remaining columns report HMMER search score and protein length metrics.";
+
 type FastaEntry = {
   id: string;
   header: string;
@@ -182,6 +185,25 @@ export default function Home() {
       record.operonLabel ?? "",
     ]);
     downloadText("nif_finder_results.tsv", [header, ...rows].map((row) => row.join("\t")).join("\n") + "\n");
+  }
+
+  function csvCell(value: string) {
+    return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+  }
+
+  function downloadCsv() {
+    const header = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness", "Operon"];
+    const rows = displayedRecords.map((record) => [
+      record.query,
+      record.logEvalue.toFixed(2),
+      String(record.alignLength),
+      record.queryLength == null ? "N/A" : String(record.queryLength),
+      record.prediction,
+      record.completeness,
+      record.operonLabel ?? "",
+    ]);
+    const csv = [header, ...rows].map((row) => row.map(csvCell).join(",")).join("\n") + "\n";
+    downloadText("nif_finder_results.csv", csv, "text/csv;charset=utf-8");
   }
 
   function parseFastaEntries(input: string) {
@@ -511,6 +533,7 @@ export default function Home() {
             </div>
 
             <div className="table-wrap">
+              <p className="table-caption">{table2Caption}</p>
               <table>
                 <thead>
                   <tr>
@@ -541,6 +564,10 @@ export default function Home() {
               <button className="ghost-button" type="button" onClick={downloadTsv} disabled={displayedRecords.length === 0}>
                 <Download size={16} aria-hidden />
                 Download TSV
+              </button>
+              <button className="ghost-button" type="button" onClick={downloadCsv} disabled={displayedRecords.length === 0}>
+                <Download size={16} aria-hidden />
+                Download CSV
               </button>
               <button
                 className="ghost-button"
