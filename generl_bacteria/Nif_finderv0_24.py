@@ -46,6 +46,7 @@ DEFAULT_CPU = 8
 DEFAULT_JOBS = 1
 DEFAULT_LOG_E_VALUE_MIN = 250
 DEFAULT_MIN_ORF_LEN = 10  # 6フレーム翻訳後に保持するORFの最小アミノ酸長
+OPERON_LENGTH_MULTIPLIER = 1.6
 
 NIF_GENE_THRESHOLDS = {
     "nifH": 240,
@@ -378,7 +379,26 @@ def select_best_records(all_records):
 # Full_operon検出（ポスト処理）
 # 条件1: 同一クエリに2種類以上の異なるnif遺伝子がヒット
 # 条件2: それらのヒットのalignment_length >= NIF_GENE_THRESHOLDS[gene]
+# 条件3: クエリ長が構成遺伝子の通常full lengthの1.6倍以上
 # ============================================================
+
+def build_operon_label(genes):
+    ordered_genes = [gene for gene in NIF_GENES if gene in genes]
+    if not ordered_genes:
+        return ""
+    return "nif" + "".join(gene.replace("nif", "") for gene in ordered_genes)
+
+
+def is_operon_length(query_full_length, full_genes):
+    if query_full_length == "N/A" or not full_genes:
+        return False
+    try:
+        query_full_length = int(query_full_length)
+    except (TypeError, ValueError):
+        return False
+    normal_full_length = max(NIF_GENE_THRESHOLDS[gene] for gene in full_genes)
+    return query_full_length >= normal_full_length * OPERON_LENGTH_MULTIPLIER
+
 
 def detect_operon_queries(all_records):
     """
@@ -390,11 +410,13 @@ def detect_operon_queries(all_records):
       operon_gene_map  : dict { query_name -> set of nif gene names that qualify as Full }
     """
     query_gene_aln = {}
+    query_lengths = {}
     for r in all_records:
         pred = r["prediction"]
         if pred not in NIF_GENE_THRESHOLDS:
             continue
         qname = r["query_name"]
+        query_lengths.setdefault(qname, r.get("query_full_length", "N/A"))
         aln = r["alignment_length"]
         if qname not in query_gene_aln:
             query_gene_aln[qname] = {}
@@ -409,18 +431,21 @@ def detect_operon_queries(all_records):
             gene for gene, aln in gene_aln.items()
             if aln >= NIF_GENE_THRESHOLDS[gene]
         }
-        if len(full_genes) >= 2:
+        if len(full_genes) >= 2 and is_operon_length(query_lengths.get(qname, "N/A"), full_genes):
             operon_queries.add(qname)
             operon_gene_map[qname] = full_genes
 
     return operon_queries, operon_gene_map
 
 
-def apply_operon_status(best_records, operon_queries):
+def apply_operon_status(best_records, operon_queries, operon_gene_map=None):
     """best_recordsのうちoperon_queriesに含まれるFullをFull_operonに更新"""
+    operon_gene_map = operon_gene_map or {}
     for qname, rec in best_records.items():
+        rec["operon_label"] = ""
         if qname in operon_queries and rec["gene_status"] == "Full":
             rec["gene_status"] = "Full_operon"
+            rec["operon_label"] = build_operon_label(operon_gene_map.get(qname, set()))
     return best_records
 
 
@@ -712,16 +737,17 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
 
     operon_queries, operon_gene_map = detect_operon_queries(all_records)
     unique_records = select_best_records(all_records)
-    unique_records = apply_operon_status(unique_records, operon_queries)
+    unique_records = apply_operon_status(unique_records, operon_queries, operon_gene_map)
 
     output_summary_file = f"{output_prefix}.txt"
     try:
         with open(output_summary_file, "w") as f:
-            f.write("Query\t-log_Evalue\tAlign_Len\tQuery_Length\tPrediction\tCompleteness\n")
+            f.write("Query\t-log_Evalue\tAlign_Len\tQuery_Length\tPrediction\tCompleteness\tOperon\n")
             for rec in unique_records.values():
                 f.write(f"{rec['query_name']}\t{rec['log_e_value']:.2f}\t"
                         f"{rec['alignment_length']}\t{rec['query_full_length']}\t"
-                        f"{rec['prediction']}\t{rec['gene_status']}\n")
+                        f"{rec['prediction']}\t{rec['gene_status']}\t"
+                        f"{rec.get('operon_label', '')}\n")
     except IOError as e:
         print(f"Error writing summary output to {output_summary_file}: {e}")
 
@@ -761,7 +787,7 @@ def process_query_directory(query_dir, profile_files, reference_files, matrix_ou
 
                 operon_queries, operon_gene_map = detect_operon_queries(all_records)
                 best = select_best_records(all_records)
-                best = apply_operon_status(best, operon_queries)
+                best = apply_operon_status(best, operon_queries, operon_gene_map)
 
                 row = get_gene_status_matrix(best)
                 out.write(f"{genome_name}\t" + "\t".join(row[g] for g in NIF_GENES) + "\n")
@@ -859,16 +885,17 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
 
         operon_queries, operon_gene_map = detect_operon_queries(all_records)
         unique_records = select_best_records(all_records)
-        unique_records = apply_operon_status(unique_records, operon_queries)
+        unique_records = apply_operon_status(unique_records, operon_queries, operon_gene_map)
 
         output_summary_file = f"{output_prefix}.txt"
         try:
             with open(output_summary_file, "w") as f:
-                f.write("Query\t-log_Evalue\tAlign_Len\tQuery_Length\tPrediction\tCompleteness\n")
+                f.write("Query\t-log_Evalue\tAlign_Len\tQuery_Length\tPrediction\tCompleteness\tOperon\n")
                 for rec in unique_records.values():
                     f.write(f"{rec['query_name']}\t{rec['log_e_value']:.2f}\t"
                             f"{rec['alignment_length']}\t{rec['query_full_length']}\t"
-                            f"{rec['prediction']}\t{rec['gene_status']}\n")
+                            f"{rec['prediction']}\t{rec['gene_status']}\t"
+                            f"{rec.get('operon_label', '')}\n")
         except IOError as e:
             print(f"Error writing summary output to {output_summary_file}: {e}")
 

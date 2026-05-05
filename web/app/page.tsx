@@ -10,6 +10,7 @@ type ResultRecord = {
   queryLength: number;
   prediction: string;
   completeness: string;
+  operonLabel?: string | null;
 };
 
 type ApiResponse = {
@@ -120,15 +121,15 @@ export default function Home() {
   const nifSummary = useMemo(() => {
     return nifGenes.map((gene) => {
       const geneRecords = records.filter((record) => record.prediction === gene);
-      const full = geneRecords.filter(
-        (record) => record.completeness === "Full" || record.completeness === "Full_operon",
-      ).length;
+      const full = geneRecords.filter((record) => record.completeness === "Full").length;
+      const operon = geneRecords.filter((record) => record.completeness === "Full_operon").length;
       const incomplete = geneRecords.filter((record) => record.completeness === "Fragment").length;
 
       return {
         gene,
         total: geneRecords.length,
         full,
+        operon,
         incomplete,
       };
     });
@@ -158,7 +159,7 @@ export default function Home() {
   }
 
   function downloadTsv() {
-    const header = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness"];
+    const header = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness", "Operon"];
     const rows = displayedRecords.map((record) => [
       record.query,
       record.logEvalue.toFixed(2),
@@ -166,8 +167,17 @@ export default function Home() {
       record.queryLength == null ? "N/A" : String(record.queryLength),
       record.prediction,
       record.completeness,
+      record.operonLabel ?? "",
     ]);
     downloadText("nif_finder_results.tsv", [header, ...rows].map((row) => row.join("\t")).join("\n") + "\n");
+  }
+
+  function displayPrediction(record: ResultRecord) {
+    return record.completeness === "Full_operon" && record.operonLabel ? record.operonLabel : record.prediction;
+  }
+
+  function displayCompleteness(record: ResultRecord) {
+    return record.completeness === "Full_operon" ? "Operon" : record.completeness;
   }
 
   function downloadPlot() {
@@ -399,6 +409,7 @@ export default function Home() {
                     <th>Gene</th>
                     <th>Total copies</th>
                     <th>Full-length</th>
+                    <th>Operon</th>
                     <th>Fragment</th>
                   </tr>
                 </thead>
@@ -408,6 +419,7 @@ export default function Home() {
                       <th scope="row">{row.gene}</th>
                       <td>{row.total}</td>
                       <td>{row.full}</td>
+                      <td>{row.operon}</td>
                       <td>{row.incomplete}</td>
                     </tr>
                   ))}
@@ -447,8 +459,8 @@ export default function Home() {
                   {displayedRecords.map((record) => (
                     <tr key={`${record.query}-${record.prediction}`}>
                       <td>{record.query}</td>
-                      <td>{record.prediction}</td>
-                      <td>{record.completeness}</td>
+                      <td>{displayPrediction(record)}</td>
+                      <td>{displayCompleteness(record)}</td>
                       <td>{record.logEvalue.toFixed(2)}</td>
                       <td>{record.alignLength}</td>
                       <td>{record.queryLength}</td>

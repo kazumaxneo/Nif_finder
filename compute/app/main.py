@@ -58,6 +58,7 @@ class ResultRecord(BaseModel):
     queryLength: int | None
     prediction: str
     completeness: str
+    operonLabel: str | None = None
 
 
 class AnalyzeResponse(BaseModel):
@@ -89,6 +90,7 @@ class MatchedHit(BaseModel):
     prediction: str
     query: str
     completeness: str
+    operon_label: str | None = None
 
 
 app = FastAPI(title="Nif-Finder Compute API", version="0.1.0")
@@ -112,13 +114,16 @@ def parse_results_tsv(path: Path) -> list[dict[str, Any]]:
     with path.open() as handle:
         header = handle.readline().rstrip("\n").split("\t")
         expected = ["Query", "-log_Evalue", "Align_Len", "Query_Length", "Prediction", "Completeness"]
-        if header != expected:
+        expected_with_operon = [*expected, "Operon"]
+        if header not in (expected, expected_with_operon):
             raise ValueError(f"Unexpected Nif-Finder output header: {header}")
 
         for line in handle:
             if not line.strip():
                 continue
-            query, log_evalue, align_len, query_len, prediction, completeness = line.rstrip("\n").split("\t")
+            fields = line.rstrip("\n").split("\t")
+            query, log_evalue, align_len, query_len, prediction, completeness = fields[:6]
+            operon_label = fields[6] if len(fields) > 6 else ""
             records.append(
                 {
                     "query": query,
@@ -127,6 +132,7 @@ def parse_results_tsv(path: Path) -> list[dict[str, Any]]:
                     "queryLength": None if query_len == "N/A" else int(query_len),
                     "prediction": prediction,
                     "completeness": completeness,
+                    "operonLabel": operon_label or None,
                 }
             )
     return records
@@ -325,6 +331,7 @@ def match_nif_hits_to_genbank(
                     prediction=prediction,
                     query=query,
                     completeness=str(record.get("completeness") or ""),
+                    operon_label=record.get("operonLabel") or None,
                 )
             )
     return matches
@@ -352,11 +359,19 @@ def add_feature(track: Any, feature: CdsFeature, *, label: str = "", color: str 
 
 
 def local_hit_suffix(hit: MatchedHit) -> str:
-    if hit.completeness in ("Full", "Full_operon"):
+    if hit.completeness == "Full_operon":
+        return "(operon)"
+    if hit.completeness == "Full":
         return "(full)"
     if hit.completeness == "Fragment":
         return "(frag.)"
     return ""
+
+
+def hit_label(hit: MatchedHit) -> str:
+    if hit.completeness == "Full_operon" and hit.operon_label:
+        return hit.operon_label
+    return hit.prediction
 
 
 def add_hit_suffix(track: Any, feature: CdsFeature, hit: MatchedHit) -> None:
@@ -392,7 +407,7 @@ def build_overview_svg(matches: list[MatchedHit], out_path: Path) -> None:
     for contig, contig_length in contigs:
         track = gv.add_feature_track(contig, contig_length, labelsize=10, line_kws=TRACK_LINE_KWS)
         for match in sorted((m for m in matches if m.feature.contig == contig), key=lambda m: m.feature.start):
-            add_feature(track, match.feature, label=match.prediction, color=GENE_COLORS.get(match.prediction, "#0f766e"))
+            add_feature(track, match.feature, label=hit_label(match), color=GENE_COLORS.get(match.prediction, "#0f766e"))
     gv.savefig(out_path, dpi=140, pad_inches=0.25)
 
 
@@ -475,7 +490,7 @@ def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature
                 add_feature(
                     track,
                     clipped_feature,
-                    label=hit.prediction,
+                    label=hit_label(hit),
                     color=GENE_COLORS.get(hit.prediction, "#0f766e"),
                 )
                 add_hit_suffix(track, clipped_feature, hit)
