@@ -374,6 +374,27 @@ def hit_label(hit: MatchedHit) -> str:
     return hit.prediction
 
 
+def overview_hit_label(hit: MatchedHit) -> str:
+    label = hit_label(hit)
+    if label.startswith("nif"):
+        return label.replace("nif", "")
+    return label
+
+
+def add_overview_position_labels(track: Any, contig_length: int) -> None:
+    track.add_text(0, "1", size=8, vpos="bottom", hpos="left", ymargin=0.25, rotation=0, color="#20242a")
+    track.add_text(
+        contig_length,
+        f"{contig_length:,}",
+        size=8,
+        vpos="bottom",
+        hpos="right",
+        ymargin=0.25,
+        rotation=0,
+        color="#20242a",
+    )
+
+
 def add_hit_suffix(track: Any, feature: CdsFeature, hit: MatchedHit) -> None:
     suffix = local_hit_suffix(hit)
     if not suffix:
@@ -406,8 +427,14 @@ def build_overview_svg(matches: list[MatchedHit], out_path: Path) -> None:
     gv = GenomeViz(fig_width=12, fig_track_height=fig_height, show_axis=False, theme="light")
     for contig, contig_length in contigs:
         track = gv.add_feature_track(contig, contig_length, labelsize=10, line_kws=TRACK_LINE_KWS)
+        add_overview_position_labels(track, contig_length)
         for match in sorted((m for m in matches if m.feature.contig == contig), key=lambda m: m.feature.start):
-            add_feature(track, match.feature, label=hit_label(match), color=GENE_COLORS.get(match.prediction, "#0f766e"))
+            add_feature(
+                track,
+                match.feature,
+                label=overview_hit_label(match),
+                color=GENE_COLORS.get(match.prediction, "#0f766e"),
+            )
     gv.savefig(out_path, dpi=140, pad_inches=0.25)
 
 
