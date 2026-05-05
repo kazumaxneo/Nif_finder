@@ -99,6 +99,7 @@ const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
 const exampleDatasets = [
   { id: "none", label: "None" },
   { id: "known-nif", label: "Known nifHDKENB demo" },
+  { id: "calothrix-fragmented", label: "Calothrix strain's fragmented nif genes" },
 ];
 
 const figure1Caption = (
@@ -171,11 +172,14 @@ export default function Home() {
   }, [records]);
   const totalNifCopies = nifSummary.reduce((sum, row) => sum + row.total, 0);
 
-  function loadExampleDataset(dataset: string) {
+  async function loadExampleDataset(dataset: string) {
     setExampleDataset(dataset);
     setResponse(null);
     if (dataset === "known-nif") {
       setFasta(sampleFasta);
+    } else if (dataset === "calothrix-fragmented") {
+      const exampleResponse = await fetch("/examples/calothrix_fragmented_nif_genes.faa");
+      setFasta(await exampleResponse.text());
     } else {
       setFasta("");
     }
@@ -433,7 +437,7 @@ export default function Home() {
 
         <label className="field compact-field example-field">
           Example dataset
-          <select value={exampleDataset} onChange={(event) => loadExampleDataset(event.target.value)}>
+          <select value={exampleDataset} onChange={(event) => void loadExampleDataset(event.target.value)}>
             {exampleDatasets.map((dataset) => (
               <option key={dataset.id} value={dataset.id}>
                 {dataset.label}
@@ -710,19 +714,6 @@ export default function Home() {
                 Shimoyama Y. pyGenomeViz: A genome visualization python package for comparative genomics.{" "}
                 <a href="https://github.com/moshi4/pyGenomeViz" target="_blank" rel="noreferrer">
                   github.com/moshi4/pyGenomeViz
-                </a>
-              </li>
-              <li>
-                Cock PJA et al. Biopython: freely available Python tools for computational molecular biology and
-                bioinformatics. <em>Bioinformatics</em>. 2009.{" "}
-                <a href="https://doi.org/10.1093/bioinformatics/btp163" target="_blank" rel="noreferrer">
-                  doi:10.1093/bioinformatics/btp163
-                </a>
-              </li>
-              <li>
-                Hunter JD. Matplotlib: A 2D Graphics Environment. <em>Computing in Science & Engineering</em>. 2007.{" "}
-                <a href="https://doi.org/10.1109/MCSE.2007.55" target="_blank" rel="noreferrer">
-                  doi:10.1109/MCSE.2007.55
                 </a>
               </li>
             </ul>
