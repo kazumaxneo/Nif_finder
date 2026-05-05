@@ -101,6 +101,12 @@ const exampleDatasets = [
   { id: "known-nif", label: "Known nifHDKENB demo" },
 ];
 
+type FastaEntry = {
+  id: string;
+  header: string;
+  sequence: string;
+};
+
 export default function Home() {
   const [fasta, setFasta] = useState("");
   const [genbank, setGenbank] = useState("");
@@ -170,6 +176,64 @@ export default function Home() {
       record.operonLabel ?? "",
     ]);
     downloadText("nif_finder_results.tsv", [header, ...rows].map((row) => row.join("\t")).join("\n") + "\n");
+  }
+
+  function parseFastaEntries(input: string) {
+    const entries: FastaEntry[] = [];
+    let header = "";
+    let sequenceParts: string[] = [];
+
+    for (const rawLine of input.split(/\r?\n/)) {
+      const line = rawLine.trim();
+      if (!line) continue;
+      if (line.startsWith(">")) {
+        if (header) {
+          entries.push({
+            id: header.split(/\s+/)[0],
+            header,
+            sequence: sequenceParts.join(""),
+          });
+        }
+        header = line.slice(1).trim();
+        sequenceParts = [];
+      } else if (header) {
+        sequenceParts.push(line.replace(/\s+/g, ""));
+      }
+    }
+
+    if (header) {
+      entries.push({
+        id: header.split(/\s+/)[0],
+        header,
+        sequence: sequenceParts.join(""),
+      });
+    }
+
+    return entries;
+  }
+
+  function formatFasta(entries: FastaEntry[], selectedRecords: Map<string, ResultRecord>) {
+    return entries
+      .map((entry) => {
+        const record = selectedRecords.get(entry.id);
+        const annotation = record ? ` |Nif-Finder ${displayPrediction(record)} ${displayCompleteness(record)}` : "";
+        const wrappedSequence = entry.sequence.match(/.{1,80}/g)?.join("\n") ?? "";
+        return `>${entry.header}${annotation}\n${wrappedSequence}`;
+      })
+      .join("\n");
+  }
+
+  function downloadFasta(filename: string, selectedRecords: ResultRecord[]) {
+    const recordMap = new Map<string, ResultRecord>();
+    for (const record of selectedRecords) {
+      if (!recordMap.has(record.query)) {
+        recordMap.set(record.query, record);
+      }
+    }
+
+    const entries = parseFastaEntries(fasta).filter((entry) => recordMap.has(entry.id));
+    if (entries.length === 0) return;
+    downloadText(filename, `${formatFasta(entries, recordMap)}\n`, "text/x-fasta;charset=utf-8");
   }
 
   function displayPrediction(record: ResultRecord) {
@@ -474,6 +538,29 @@ export default function Home() {
               <button className="ghost-button" type="button" onClick={downloadTsv} disabled={displayedRecords.length === 0}>
                 <Download size={16} aria-hidden />
                 Download TSV
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() =>
+                  downloadFasta(
+                    "nif_finder_detected_nif.faa",
+                    records.filter((record) => nifGenes.includes(record.prediction)),
+                  )
+                }
+                disabled={records.every((record) => !nifGenes.includes(record.prediction))}
+              >
+                <Download size={16} aria-hidden />
+                Download nif FASTA
+              </button>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={() => downloadFasta("nif_finder_all_hits.faa", records)}
+                disabled={records.length === 0}
+              >
+                <Download size={16} aria-hidden />
+                Download all hit FASTA
               </button>
               <button className="ghost-button" type="button" onClick={downloadPlot} disabled={!response?.plotPngBase64}>
                 <Download size={16} aria-hidden />
