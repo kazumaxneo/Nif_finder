@@ -697,6 +697,25 @@ export default function Home() {
             </a>
           </p>
           <p>
+            Software citations: Eddy SR. Accelerated Profile HMM Searches. <em>PLoS Computational Biology</em>. 2011.{" "}
+            <a href="https://doi.org/10.1371/journal.pcbi.1002195" target="_blank" rel="noreferrer">
+              doi:10.1371/journal.pcbi.1002195
+            </a>
+            ; Shimoyama Y. pyGenomeViz: A genome visualization python package for comparative genomics.{" "}
+            <a href="https://github.com/moshi4/pyGenomeViz" target="_blank" rel="noreferrer">
+              github.com/moshi4/pyGenomeViz
+            </a>
+            ; Cock PJA et al. Biopython: freely available Python tools for computational molecular biology and
+            bioinformatics. <em>Bioinformatics</em>. 2009.{" "}
+            <a href="https://doi.org/10.1093/bioinformatics/btp163" target="_blank" rel="noreferrer">
+              doi:10.1093/bioinformatics/btp163
+            </a>
+            ; Hunter JD. Matplotlib: A 2D Graphics Environment. <em>Computing in Science & Engineering</em>. 2007.{" "}
+            <a href="https://doi.org/10.1109/MCSE.2007.55" target="_blank" rel="noreferrer">
+              doi:10.1109/MCSE.2007.55
+            </a>
+          </p>
+          <p>
             Source code:{" "}
             <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
               github.com/kazumaxneo/Nif_finder
