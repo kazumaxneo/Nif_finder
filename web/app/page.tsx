@@ -35,11 +35,12 @@ const exampleDatasets = [
 const figure1Caption = (
   <>
     Figure 1. 2D Similarity Plot of homology search for the six Nif proteins encoded by <em>nifHDKENB</em> of
-    various bacterial genomes. The relationship between –log10(E-value) of the Hmmer3 search using <em>nif</em> HMM
-    profiles and the length of the hit protein against proteomes of 586 cyanobacterial strains and other bacterial
-    strains are plotted. The color indicates the single best hit protein from SWISS-PROT sequences. Circle plots
-    represent hit from complete genome assembly, while triangle plots represent hits from draft genome assembly. The
-    star plot represents the hits of the Nif fusion proteins.
+    various bacterial genomes. Background reference points show the relationship between –log10(E-value) from HMMER3
+    searches using <em>nif</em> HMM profiles and hit protein length across proteomes of 586 cyanobacterial strains and
+    other bacterial strains. Query sequences submitted to Nif-Finder are overlaid and highlighted on this 2D Similarity
+    Plot, and are classified by their best matching <em>nif</em> profile. The color indicates the single best hit
+    protein from SWISS-PROT sequences. Circle, triangle, and star plots represent hits from complete genome assemblies,
+    draft genome assemblies, and Nif fusion proteins, respectively.
   </>
 );
 
