@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
-import { AlertCircle, Download, FileUp, Play, Settings } from "lucide-react";
+import { AlertCircle, Download, FileUp, Play } from "lucide-react";
 
 type ResultRecord = {
   query: string;
@@ -518,48 +518,49 @@ export default function Home() {
           {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
         </p>
 
-        <div className="settings run-settings">
-          <div className="section-title">
-            Run settings
+        <div className="settings-row">
+          <div className="settings run-settings">
+            <div className="section-title">
+              Run settings
+            </div>
+            <label>
+              Jobs
+              <input type="number" min={1} max={6} value={jobs} onChange={(event) => setJobs(Number(event.target.value))} />
+            </label>
+            <label>
+              CPU
+              <input type="number" min={1} max={24} value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
+            </label>
+            <label>
+              E-value threshold
+              <input
+                type="text"
+                inputMode="decimal"
+                value={evalueThreshold}
+                onChange={(event) => setEvalueThreshold(event.target.value)}
+              />
+            </label>
           </div>
-          <label>
-            Jobs
-            <input type="number" min={1} max={6} value={jobs} onChange={(event) => setJobs(Number(event.target.value))} />
-          </label>
-          <label>
-            CPU
-            <input type="number" min={1} max={24} value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
-          </label>
-          <label>
-            E-value threshold
-            <input
-              type="text"
-              inputMode="decimal"
-              value={evalueThreshold}
-              onChange={(event) => setEvalueThreshold(event.target.value)}
-            />
-          </label>
+
+          <div className="settings advanced-settings">
+            <div className="section-title">
+              Output
+            </div>
+            <label className="toggle-row">
+              <input type="checkbox" checked={plotOutput} onChange={(event) => setPlotOutput(event.target.checked)} />
+              Plot output
+            </label>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={showOnlyNifHits}
+                onChange={(event) => setShowOnlyNifHits(event.target.checked)}
+              />
+              Show only nif hits
+            </label>
+          </div>
         </div>
         <p className="input-note">E-value can affect sensitivity; the default is recommended.</p>
-
-        <div className="settings advanced-settings">
-          <div className="section-title">
-            <Settings size={17} aria-hidden />
-            Output
-          </div>
-          <label className="toggle-row">
-            <input type="checkbox" checked={plotOutput} onChange={(event) => setPlotOutput(event.target.checked)} />
-            Plot output
-          </label>
-          <label className="toggle-row">
-            <input
-              type="checkbox"
-              checked={showOnlyNifHits}
-              onChange={(event) => setShowOnlyNifHits(event.target.checked)}
-            />
-            Show only nif hits
-          </label>
-        </div>
 
         <button className="run-button" type="button" onClick={analyze} disabled={loading}>
           <Play size={18} aria-hidden />
