@@ -462,6 +462,23 @@ export default function Home() {
               <em>nifD</em>, <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, and <em>nifB</em>, from protein or genome FASTA
               using HMMER3 hmmscan and nearest-neighbour (1-NN) classification on homology and protein length plots.
             </p>
+            <div className="brand-citation">
+              <p>
+                Citation
+                <br />
+                Uesaka K, Fujita Y. Accurate prediction of nitrogen fixation in cyanobacteria reveals the dynamic
+                evolution driving high retention rate with mosaic distribution. <em>bioRxiv</em>. 2026.{" "}
+                <a href="https://doi.org/10.64898/2026.01.15.699626" target="_blank" rel="noreferrer">
+                  doi:10.64898/2026.01.15.699626
+                </a>
+              </p>
+              <p>
+                Code:{" "}
+                <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
+                  github.com/kazumaxneo/Nif_finder
+                </a>
+              </p>
+            </div>
           </div>
         </div>
 
@@ -710,21 +727,6 @@ export default function Home() {
         )}
 
         <footer className="site-footer">
-          <p>
-            Citation
-            <br />
-            Uesaka K, Fujita Y. Accurate prediction of nitrogen fixation in cyanobacteria reveals the dynamic evolution
-            driving high retention rate with mosaic distribution. <em>bioRxiv</em>. 2026.{" "}
-            <a href="https://doi.org/10.64898/2026.01.15.699626" target="_blank" rel="noreferrer">
-              doi:10.64898/2026.01.15.699626
-            </a>
-          </p>
-          <p>
-            Code:{" "}
-            <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
-              github.com/kazumaxneo/Nif_finder
-            </a>
-          </p>
           <div className="software-citations">
             <p>Software citations:</p>
             <ul>

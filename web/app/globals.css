@@ -59,8 +59,8 @@ textarea {
 }
 
 .brand {
-  background: #7f7047;
-  border: 1px solid #9a8c61;
+  background: #b8aa7a;
+  border: 1px solid #c9be96;
   border-radius: 18px;
   box-shadow: 0 14px 36px rgba(23, 32, 42, 0.12);
   color: #f8fafc;
@@ -87,11 +87,37 @@ textarea {
 }
 
 .brand p {
-  color: #f2efe4;
+  color: #fffaf0;
   font-size: 18px;
   line-height: 1.55;
   margin: 14px 0 0;
   max-width: 790px;
+}
+
+.brand-citation {
+  border-top: 1px solid rgba(255, 250, 240, 0.42);
+  color: #fffaf0;
+  font-size: 12px;
+  line-height: 1.45;
+  margin-top: 22px;
+  padding-top: 12px;
+}
+
+.brand-citation p {
+  color: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  margin: 4px 0;
+  max-width: 860px;
+}
+
+.brand-citation a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand-citation a:hover {
+  text-decoration: underline;
 }
 
 .field,
@@ -294,13 +320,13 @@ input:focus {
 
 .advanced-settings {
   align-items: center;
-  align-self: flex-end;
+  align-self: flex-start;
   gap: 8px 14px;
-  padding-bottom: 2px;
 }
 
 .advanced-settings .section-title {
   align-self: center;
+  flex: 1 0 100%;
   margin-right: 0;
 }
 
