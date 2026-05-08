@@ -456,8 +456,13 @@ export default function Home() {
       <aside className="sidebar">
         <div className="brand">
           <div>
-            <h1>Nif-Finder Web</h1>
-            <p>NifHDKENB identification from protein fasta</p>
+            <h1>Nif-Finder</h1>
+            <p>
+              A command-line and web tool for detecting and classifying nitrogen fixation (<em>nif</em>) genes,
+              including <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, and <em>nifB</em>,
+              from protein or genome FASTA using HMMER3 hmmscan and nearest-neighbour (1-NN) classification on homology
+              and protein length plots.
+            </p>
           </div>
         </div>
 
