@@ -59,15 +59,32 @@ textarea {
 }
 
 .brand {
+  align-items: center;
   background: #d6c99d;
   border: 1px solid #ded3ad;
   border-radius: 18px;
   box-shadow: 0 14px 36px rgba(23, 32, 42, 0.12);
   color: #17202a;
   display: flex;
+  gap: 26px;
+  justify-content: space-between;
   min-height: 150px;
+  overflow: hidden;
   padding: 30px 36px;
   text-align: left;
+}
+
+.brand-copy {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.brand-figure {
+  flex: 0 0 auto;
+  max-height: 220px;
+  object-fit: contain;
+  opacity: 0.88;
+  width: clamp(150px, 24%, 235px);
 }
 
 .brand h1,
@@ -575,9 +592,17 @@ th {
 
   .brand {
     border-radius: 14px;
+    flex-direction: column;
+    gap: 14px;
     min-height: 0;
     padding: 22px;
     text-align: left;
+  }
+
+  .brand-figure {
+    align-self: flex-start;
+    max-height: 150px;
+    width: min(210px, 62%);
   }
 
   .brand h1,

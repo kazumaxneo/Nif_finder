@@ -455,7 +455,7 @@ export default function Home() {
     <main className="workspace">
       <aside className="sidebar">
         <div className="brand">
-          <div>
+          <div className="brand-copy">
             <h1>Nif-Finder</h1>
             <p>
               Web tool for detecting and classifying nitrogen fixation (<em>nif</em>) genes, including <em>nifH</em>,{" "}
@@ -480,6 +480,7 @@ export default function Home() {
               </p>
             </div>
           </div>
+          <img className="brand-figure" src="/nif_phylogeny_transparent.png" alt="" aria-hidden="true" />
         </div>
 
         <label className="field">
