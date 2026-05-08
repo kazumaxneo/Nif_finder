@@ -59,8 +59,8 @@ textarea {
 }
 
 .brand {
-  background: #302a18;
-  border: 1px solid #49412c;
+  background: #7f7047;
+  border: 1px solid #9a8c61;
   border-radius: 18px;
   box-shadow: 0 14px 36px rgba(23, 32, 42, 0.12);
   color: #f8fafc;
@@ -72,7 +72,7 @@ textarea {
 
 .brand h1,
 .summary-row h2 {
-  font-size: 36px;
+  font-size: 31px;
   letter-spacing: 0;
   line-height: 1.1;
   margin: 0;
@@ -87,7 +87,7 @@ textarea {
 }
 
 .brand p {
-  color: #cfd3d8;
+  color: #f2efe4;
   font-size: 18px;
   line-height: 1.55;
   margin: 14px 0 0;
@@ -197,7 +197,7 @@ input:focus {
   border: 1px solid var(--line);
   color: var(--ink);
   font-size: 13px;
-  min-width: 190px;
+  min-width: 156px;
   position: relative;
 }
 
@@ -248,7 +248,7 @@ input:focus {
 }
 
 .run-settings label {
-  width: 88px;
+  width: 64px;
 }
 
 .run-settings .section-title {

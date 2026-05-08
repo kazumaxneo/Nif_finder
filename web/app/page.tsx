@@ -484,7 +484,6 @@ export default function Home() {
             ))}
           </select>
         </label>
-        <p className="input-note">Examples load demo FASTA input; Leptolyngbya also loads a GenBank file.</p>
 
         <div className="upload-row">
           <label className="file-button" title="Load protein FASTA from a local file">
