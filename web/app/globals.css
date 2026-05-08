@@ -59,8 +59,8 @@ textarea {
 }
 
 .brand {
-  background: #b8aa7a;
-  border: 1px solid #c9be96;
+  background: #d6c99d;
+  border: 1px solid #ded3ad;
   border-radius: 18px;
   box-shadow: 0 14px 36px rgba(23, 32, 42, 0.12);
   color: #17202a;
@@ -145,7 +145,7 @@ textarea {
 }
 
 .field {
-  width: min(59%, 575px);
+  width: min(71%, 690px);
 }
 
 input[type="number"] {
@@ -330,6 +330,10 @@ input:focus {
   margin-right: 0;
 }
 
+.advanced-settings .toggle-row {
+  margin-top: 21px;
+}
+
 .settings label.toggle-row {
   align-items: center;
   flex-direction: row;
@@ -349,7 +353,10 @@ input:focus {
   border: 1px solid #c7cdd4;
   color: var(--ink);
   font-weight: 750;
-  min-width: 180px;
+  margin-top: 14px;
+  min-height: 32px;
+  min-width: 160px;
+  padding: 6px 11px;
   width: auto;
 }
 
