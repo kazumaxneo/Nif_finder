@@ -72,7 +72,7 @@ textarea {
 
 .brand h1,
 .summary-row h2 {
-  font-size: 40px;
+  font-size: 36px;
   letter-spacing: 0;
   line-height: 1.1;
   margin: 0;
@@ -119,7 +119,7 @@ textarea {
 }
 
 .field {
-  width: min(66%, 640px);
+  width: min(44%, 430px);
 }
 
 input[type="number"] {
@@ -227,7 +227,7 @@ input:focus {
   align-items: flex-start;
   border-top: 1px solid var(--line);
   flex-wrap: wrap;
-  gap: 10px 12px;
+  gap: 8px 10px;
   padding-top: 16px;
 }
 
@@ -247,7 +247,7 @@ input:focus {
 }
 
 .run-settings label {
-  width: 132px;
+  width: 88px;
 }
 
 .run-settings .section-title {
@@ -261,7 +261,7 @@ input:focus {
 }
 
 .run-settings label:last-child {
-  width: 160px;
+  width: 118px;
 }
 
 .compact-field {
@@ -279,9 +279,17 @@ input:focus {
   align-items: center;
   flex-direction: row;
   font-size: 13px;
-  gap: 8px;
+  gap: 6px;
   min-height: 30px;
   width: fit-content;
+}
+
+.advanced-settings {
+  gap: 8px 14px;
+}
+
+.advanced-settings .section-title {
+  margin-right: 2px;
 }
 
 .settings label.toggle-row {
@@ -531,11 +539,11 @@ th {
   }
 
   .run-settings label {
-    width: min(160px, 100%);
+    width: min(88px, 100%);
   }
 
   .run-settings label:last-child {
-    width: min(180px, 100%);
+    width: min(118px, 100%);
   }
 
   .field {
