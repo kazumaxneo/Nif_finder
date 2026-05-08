@@ -475,6 +475,18 @@ export default function Home() {
           />
         </label>
 
+        <label className="field compact-field example-field">
+          Example dataset
+          <select value={exampleDataset} onChange={(event) => void loadExampleDataset(event.target.value)}>
+            {exampleDatasets.map((dataset) => (
+              <option key={dataset.id} value={dataset.id}>
+                {dataset.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <p className="input-note">Examples load demo FASTA input; Leptolyngbya also loads a GenBank file.</p>
+
         <div className="upload-row">
           <label className="file-button" title="Load protein FASTA from a local file">
             <FileUp size={18} aria-hidden />
@@ -507,18 +519,6 @@ export default function Home() {
           Optional GenBank file for genome plotting. Max size: 25 MB.{" "}
           {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
         </p>
-
-        <label className="field compact-field example-field">
-          Example dataset
-          <select value={exampleDataset} onChange={(event) => void loadExampleDataset(event.target.value)}>
-            {exampleDatasets.map((dataset) => (
-              <option key={dataset.id} value={dataset.id}>
-                {dataset.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <p className="input-note">Examples load demo FASTA input; Leptolyngbya also loads a GenBank file.</p>
 
         <div className="settings run-settings">
           <div className="section-title">
