@@ -112,7 +112,7 @@ textarea {
   font-size: 13px;
   font-weight: 400;
   line-height: 1.45;
-  min-height: 260px;
+  min-height: 195px;
   padding: 12px;
   resize: vertical;
   width: 100%;
@@ -196,6 +196,7 @@ input:focus {
   background: var(--panel);
   border: 1px solid var(--line);
   color: var(--ink);
+  font-size: 13px;
   min-width: 190px;
   position: relative;
 }
@@ -285,11 +286,13 @@ input:focus {
 }
 
 .advanced-settings {
+  align-items: center;
   gap: 8px 14px;
 }
 
 .advanced-settings .section-title {
-  margin-right: 2px;
+  align-self: center;
+  margin-right: 0;
 }
 
 .settings label.toggle-row {
@@ -299,7 +302,9 @@ input:focus {
 
 .toggle-row input {
   accent-color: #17202a;
+  flex: 0 0 auto;
   height: 16px;
+  margin: 0;
   width: 16px;
 }
 
