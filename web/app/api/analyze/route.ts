@@ -122,8 +122,8 @@ export async function POST(request: NextRequest) {
       try {
         const result = await runLocalNifFinder(
           fasta,
-          body.jobs ?? 3,
-          body.cpu ?? 6,
+          body.jobs ?? 1,
+          body.cpu ?? 4,
           body.plot ?? true,
           body.evalue ?? 1e-10,
         );
@@ -163,8 +163,8 @@ export async function POST(request: NextRequest) {
       body: JSON.stringify({
         fasta,
         genbank: body.genbank?.trim() || undefined,
-        jobs: body.jobs ?? 3,
-        cpu: body.cpu ?? 6,
+        jobs: body.jobs ?? 1,
+        cpu: body.cpu ?? 4,
         plot: body.plot ?? true,
         evalue: body.evalue ?? 1e-10,
       }),

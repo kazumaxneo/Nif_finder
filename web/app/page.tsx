@@ -77,8 +77,8 @@ export default function Home() {
   const [fasta, setFasta] = useState("");
   const [genbank, setGenbank] = useState("");
   const [genbankFileName, setGenbankFileName] = useState("");
-  const [jobs, setJobs] = useState(3);
-  const [cpu, setCpu] = useState(6);
+  const [jobs, setJobs] = useState(1);
+  const [cpu, setCpu] = useState(4);
   const [plotOutput, setPlotOutput] = useState(true);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
@@ -584,6 +584,9 @@ export default function Home() {
           <Play size={18} aria-hidden />
           {loading ? "Running" : "Run analysis"}
         </button>
+        {loading ? (
+          <p className="input-note running-note">Analysis may take several minutes when the compute server is busy.</p>
+        ) : null}
       </aside>
 
       <section className="results">

@@ -4,6 +4,7 @@ import hmac
 import os
 import subprocess
 import tempfile
+import threading
 import time
 from io import StringIO
 from pathlib import Path
@@ -25,6 +26,8 @@ PYTHON_BIN = os.environ.get("NIF_FINDER_PYTHON", "python")
 MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 MAX_GENBANK_BYTES = int(os.environ.get("MAX_GENBANK_BYTES", str(25 * 1024 * 1024)))
 REQUEST_TIMEOUT_SECONDS = int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "120"))
+MAX_CONCURRENT_ANALYSES = int(os.environ.get("MAX_CONCURRENT_ANALYSES", "2"))
+QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "240"))
 NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
 TOKEN_MAX_AGE_SECONDS = int(os.environ.get("TOKEN_MAX_AGE_SECONDS", "600"))
 NIF_GENES = {"nifH", "nifD", "nifK", "nifE", "nifN", "nifB"}
@@ -45,8 +48,8 @@ TRACK_LINE_KWS = {"color": "#20242a", "lw": 0.45, "zorder": 0}
 class AnalyzeRequest(BaseModel):
     fasta: str = Field(..., min_length=1)
     genbank: str | None = None
-    jobs: int = Field(default=3, ge=1, le=6)
-    cpu: int = Field(default=6, ge=1, le=32)
+    jobs: int = Field(default=1, ge=1, le=6)
+    cpu: int = Field(default=4, ge=1, le=32)
     plot: bool = True
     evalue: float = Field(default=1e-10, gt=0)
 
@@ -94,6 +97,7 @@ class MatchedHit(BaseModel):
 
 
 app = FastAPI(title="Nif-Finder Compute API", version="0.1.0")
+analysis_semaphore = threading.BoundedSemaphore(MAX_CONCURRENT_ANALYSES)
 
 allowed_origins = [
     origin.strip()
@@ -616,70 +620,80 @@ def analyze(
     if not NIF_FINDER_DB.is_dir():
         raise HTTPException(status_code=500, detail=f"Nif-Finder DB directory not found: {NIF_FINDER_DB}")
 
-    with tempfile.TemporaryDirectory(prefix="nif-finder-api-") as tmp:
-        tmp_dir = Path(tmp)
-        query_path = tmp_dir / "query.faa"
-        out_prefix = tmp_dir / "result"
-        query_path.write_text(fasta)
+    acquired = analysis_semaphore.acquire(timeout=QUEUE_WAIT_SECONDS)
+    if not acquired:
+        raise HTTPException(
+            status_code=429,
+            detail="The compute server is busy. Please try again in a few minutes.",
+        )
 
-        command = [
-            PYTHON_BIN,
-            str(NIF_FINDER_SCRIPT),
-            "-q",
-            str(query_path),
-            "-o",
-            str(out_prefix),
-            "--jobs",
-            str(request.jobs),
-            "--cpu",
-            str(request.cpu),
-            "--evalue",
-            str(request.evalue),
-        ]
-        if request.plot:
-            command.append("-p")
-        env = {
-            **os.environ,
-            "NIF_FINDER_DB": str(NIF_FINDER_DB),
-        }
+    try:
+        with tempfile.TemporaryDirectory(prefix="nif-finder-api-") as tmp:
+            tmp_dir = Path(tmp)
+            query_path = tmp_dir / "query.faa"
+            out_prefix = tmp_dir / "result"
+            query_path.write_text(fasta)
 
-        try:
-            completed = subprocess.run(
-                command,
-                env=env,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                text=True,
-                timeout=REQUEST_TIMEOUT_SECONDS,
-                check=True,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise HTTPException(status_code=504, detail=f"Nif-Finder timed out after {REQUEST_TIMEOUT_SECONDS}s.") from exc
-        except subprocess.CalledProcessError as exc:
-            detail = exc.stderr.strip() or exc.stdout.strip() or str(exc)
-            raise HTTPException(status_code=500, detail=f"Nif-Finder failed: {detail}") from exc
+            command = [
+                PYTHON_BIN,
+                str(NIF_FINDER_SCRIPT),
+                "-q",
+                str(query_path),
+                "-o",
+                str(out_prefix),
+                "--jobs",
+                str(request.jobs),
+                "--cpu",
+                str(request.cpu),
+                "--evalue",
+                str(request.evalue),
+            ]
+            if request.plot:
+                command.append("-p")
+            env = {
+                **os.environ,
+                "NIF_FINDER_DB": str(NIF_FINDER_DB),
+            }
 
-        result_path = Path(f"{out_prefix}.txt")
-        if not result_path.is_file():
-            raise HTTPException(status_code=500, detail="Nif-Finder did not produce a result table.")
+            try:
+                completed = subprocess.run(
+                    command,
+                    env=env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=REQUEST_TIMEOUT_SECONDS,
+                    check=True,
+                )
+            except subprocess.TimeoutExpired as exc:
+                raise HTTPException(status_code=504, detail=f"Nif-Finder timed out after {REQUEST_TIMEOUT_SECONDS}s.") from exc
+            except subprocess.CalledProcessError as exc:
+                detail = exc.stderr.strip() or exc.stdout.strip() or str(exc)
+                raise HTTPException(status_code=500, detail=f"Nif-Finder failed: {detail}") from exc
 
-        try:
-            records = parse_results_tsv(result_path)
-        except Exception as exc:
-            raise HTTPException(status_code=500, detail=f"Failed to parse Nif-Finder results: {exc}") from exc
+            result_path = Path(f"{out_prefix}.txt")
+            if not result_path.is_file():
+                raise HTTPException(status_code=500, detail="Nif-Finder did not produce a result table.")
 
-        plot_path = Path(f"{out_prefix}_scatter.png")
-        plot_png_base64 = None
-        plot_message = None
-        if plot_path.is_file():
-            plot_png_base64 = base64.b64encode(plot_path.read_bytes()).decode("ascii")
-        elif not request.plot:
-            plot_message = "Plot output was disabled for this run."
-        else:
-            output = "\n".join(part for part in [completed.stdout.strip(), completed.stderr.strip()] if part)
-            plot_message = output[-1000:] if output else "Nif-Finder did not produce a scatter plot."
+            try:
+                records = parse_results_tsv(result_path)
+            except Exception as exc:
+                raise HTTPException(status_code=500, detail=f"Failed to parse Nif-Finder results: {exc}") from exc
 
-        genomic_context = build_genomic_context(genbank, records, tmp_dir, fasta)
+            plot_path = Path(f"{out_prefix}_scatter.png")
+            plot_png_base64 = None
+            plot_message = None
+            if plot_path.is_file():
+                plot_png_base64 = base64.b64encode(plot_path.read_bytes()).decode("ascii")
+            elif not request.plot:
+                plot_message = "Plot output was disabled for this run."
+            else:
+                output = "\n".join(part for part in [completed.stdout.strip(), completed.stderr.strip()] if part)
+                plot_message = output[-1000:] if output else "Nif-Finder did not produce a scatter plot."
+
+            genomic_context = build_genomic_context(genbank, records, tmp_dir, fasta)
+    finally:
+        analysis_semaphore.release()
 
     return AnalyzeResponse(
         records=records,

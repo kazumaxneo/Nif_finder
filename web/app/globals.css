@@ -222,6 +222,10 @@ input:focus {
   margin: -10px 0 0;
 }
 
+.running-note {
+  margin-top: -8px;
+}
+
 .file-button,
 .ghost-button,
 .run-button {
