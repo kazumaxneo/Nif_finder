@@ -1,3 +1,4 @@
+<img width="970" height="806" alt="result8" src="https://github.com/user-attachments/assets/b2f2897b-3aa4-445f-8408-69c1ccd85f0b" />
 ---
 title: Nif-Finder Compute
 sdk: docker
@@ -116,7 +117,7 @@ Nif-Finder can also be used from the public web interface:
 https://web-theta-black-17.vercel.app/
 
 <p align="center">
-  <a href="https://web-theta-black-17.vercel.app/"><img src="result7.png" alt="Nif-Finder Web interface" width="1100"></a>
+  <a href="https://web-theta-black-17.vercel.app/"><img src="result8.png" alt="Nif-Finder Web interface" width="1100"></a>
 </p>
 
 
