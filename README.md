@@ -106,7 +106,7 @@ similar for this protein FASTA test.
 
 ## Web interface
 
-Nif-Finder can also be used from the public web interface:
+Nif-Finder can also be used from the public web interface:  
 https://web-theta-black-17.vercel.app/
 
 <p align="center">
