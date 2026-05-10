@@ -1,10 +1,3 @@
-<img width="970" height="806" alt="result8" src="https://github.com/user-attachments/assets/b2f2897b-3aa4-445f-8408-69c1ccd85f0b" />
----
-title: Nif-Finder Compute
-sdk: docker
-app_port: 7860
-license: mit
----
 
 # Nif_finder
 
