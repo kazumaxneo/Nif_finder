@@ -394,7 +394,7 @@ export default function Home() {
         evalue: Number(evalueThreshold),
       });
       let res: Response;
-      if (requestBody.length > 3_500_000) {
+      if (requestBody.length > 1_000_000) {
         const tokenRes = await fetch("/api/compute-token", { method: "POST" });
         const tokenData = (await tokenRes.json()) as { apiUrl?: string; token?: string };
         if (tokenRes.ok && tokenData.apiUrl && tokenData.token) {
@@ -424,7 +424,14 @@ export default function Home() {
       const data = text
         ? (JSON.parse(text) as ApiResponse)
         : ({ error: `Analysis request returned an empty response (${res.status}).` } satisfies ApiResponse);
-      setResponse(data);
+      if (!res.ok && !data.error) {
+        setResponse({
+          ...data,
+          error: data.detail || `Analysis request failed (${res.status}).`,
+        });
+      } else {
+        setResponse(data);
+      }
     } catch (error) {
       setResponse({ error: error instanceof Error ? error.message : "Request failed." });
     } finally {
