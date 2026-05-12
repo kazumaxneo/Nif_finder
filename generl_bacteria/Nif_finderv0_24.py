@@ -456,12 +456,17 @@ def apply_operon_status(best_records, operon_queries, operon_gene_map=None):
 # ============================================================
 
 def get_gene_status_matrix(records):
-    status = {gene: "N/A" for gene in NIF_GENES}
+    status_sets = {gene: set() for gene in NIF_GENES}
+    status_order = ["Full_operon", "Full", "Fragment", "unclassifiable"]
     for r in records.values():
         pred = r["prediction"]
-        if pred in status:
-            status[pred] = r["gene_status"]
-    return status
+        gene_status = r["gene_status"]
+        if pred in status_sets and gene_status != "N/A":
+            status_sets[pred].add(gene_status)
+    return {
+        gene: "+".join(s for s in status_order if s in status_sets[gene]) or "N/A"
+        for gene in NIF_GENES
+    }
 
 
 def write_selected_fasta(fasta_file, records, output_fasta):
@@ -754,7 +759,7 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
         print(f"Error writing summary output to {output_summary_file}: {e}")
 
     if save_fasta:
-        fasta_output_file = f"{base_name}_nifHDKENB.faa"
+        fasta_output_file = f"{output_prefix}_nifHDKENB.faa"
         write_selected_fasta(query_file, unique_records, fasta_output_file)
 
     if plot:
@@ -903,7 +908,7 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
 
         if save_fasta:
             # -s の場合は翻訳済み配列（ORF）を保存
-            fasta_output_file = f"{base_name}_genome_nifHDKENB.faa"
+            fasta_output_file = f"{output_prefix}_nifHDKENB.faa"
             write_selected_fasta(tmp_faa_path, unique_records, fasta_output_file)
 
         if plot:

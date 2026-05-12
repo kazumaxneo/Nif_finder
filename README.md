@@ -67,7 +67,7 @@ in parallel and keep each HMMscan lightweight:
 mkdir -p results
 find faa_files -name "*.faa" | parallel -j 16 '
   base=$(basename {} .faa)
-  python Nif_finderv0_24.py -q {} -o results/${base} --jobs 1 --cpu 1
+  python Nif_finderv0_24.py -q {} -o results/${base} --jobs 1 --cpu 1 -s -p
 '
 ```
 
@@ -156,6 +156,10 @@ Tab-separated table written for each query.
 | `Query_Length` | Full length of the query protein (aa) |
 | `Prediction` | Predicted gene identity (`nifH/D/K/E/N/B`, `other`, `unclassifiable`, …) |
 | `Completeness` | `Full`, `Fragment`, `Full_operon`, or `N/A` |
+
+### Gene-status matrix (`-d`)
+
+In directory mode, `nif_matrix.tsv` reports all detected statuses per gene. If a genome contains both a full-length copy and fragmented copies of the same gene, the matrix keeps both, for example `Full+Fragment`.
 
 
 ### Nif FASTA sequnece (`-s`)
