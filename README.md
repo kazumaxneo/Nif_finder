@@ -60,6 +60,17 @@ python Nif_finderv0_24.py \
 
 See [Memory usage](#memory-usage) for the measured peak memory of this example.
 
+For many `.faa` files on a 16-core or larger machine, run many single-file jobs
+in parallel and keep each HMMscan lightweight:
+
+```bash
+mkdir -p results
+find faa_files -name "*.faa" | parallel -j 16 '
+  base=$(basename {} .faa)
+  python Nif_finderv0_24.py -q {} -o results/${base} --jobs 1 --cpu 1
+'
+```
+
 ### Genome DNA FASTA (`-g`)
 
 Performs 6-frame translation internally, then runs HMMscan on the translated ORFs. Useful for detecting *nif* genes on scaffolds that may carry intervening sequences or rearrangement junctions. Note: takes longer time for 6 frame homology search.
