@@ -66,8 +66,9 @@ process per file with GNU parallel. On a 16-core machine, start with 16
 single-file processes and keep each HMMscan lightweight:
 
 ```bash
+input_dir=.
 mkdir -p results
-find faa_files -name "*.faa" | parallel -j 16 '
+find "$input_dir" -maxdepth 1 -name "*.faa" | parallel -j 16 '
   base=$(basename {} .faa)
   python Nif_finderv0_24.py -q {} -o results/${base} --jobs 1 --cpu 1 -s -p
 '
