@@ -60,8 +60,10 @@ python Nif_finderv0_24.py \
 
 See [Memory usage](#memory-usage) for the measured peak memory of this example.
 
-For many `.faa` files on a 16-core or larger machine, run many single-file jobs
-in parallel and keep each HMMscan lightweight:
+For many `.faa` files, `--jobs` and `--cpu` only speed up each individual
+input file. To use many cores efficiently across many files, run one Nif-Finder
+process per file with GNU parallel. On a 16-core machine, start with 16
+single-file processes and keep each HMMscan lightweight:
 
 ```bash
 mkdir -p results
