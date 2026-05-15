@@ -25,7 +25,7 @@ NIF_FINDER_SCRIPT = NIF_FINDER_ROOT / "Nif_finderv0_24.py"
 PYTHON_BIN = os.environ.get("NIF_FINDER_PYTHON", "python")
 MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 MAX_GENBANK_BYTES = int(os.environ.get("MAX_GENBANK_BYTES", str(25 * 1024 * 1024)))
-REQUEST_TIMEOUT_SECONDS = int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "900"))
+REQUEST_TIMEOUT_SECONDS = max(600, int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "600")))
 MAX_CONCURRENT_ANALYSES = int(os.environ.get("MAX_CONCURRENT_ANALYSES", "2"))
 QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "240"))
 NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
@@ -583,7 +583,7 @@ def validate_analysis_token(token: str | None) -> bool:
 
 
 @app.get("/health")
-def health() -> dict[str, str | bool]:
+def health() -> dict[str, str | bool | int]:
     hmmscan = subprocess.run(["hmmscan", "-h"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     status = "ok" if hmmscan.returncode == 0 and NIF_FINDER_SCRIPT.is_file() else "not-ready"
     try:
@@ -598,6 +598,7 @@ def health() -> dict[str, str | bool]:
         "nifFinderRoot": str(NIF_FINDER_ROOT),
         "nifFinderDb": str(NIF_FINDER_DB),
         "matplotlib": matplotlib_available,
+        "requestTimeoutSeconds": REQUEST_TIMEOUT_SECONDS,
     }
 
 
