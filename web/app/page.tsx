@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, useMemo, useState } from "react";
-import { AlertCircle, Download, FileUp, Play } from "lucide-react";
+import { AlertCircle, BookOpen, Download, FileUp, HomeIcon, Info, Play } from "lucide-react";
 
 type ResultRecord = {
   query: string;
@@ -76,6 +76,16 @@ type ZipEntry = {
 };
 
 type ActiveTab = "run" | "manual" | "about";
+
+const navigationTabs: Array<{
+  id: ActiveTab;
+  label: string;
+  icon: typeof HomeIcon;
+}> = [
+  { id: "run", label: "Run", icon: HomeIcon },
+  { id: "manual", label: "Manual", icon: BookOpen },
+  { id: "about", label: "About", icon: Info },
+];
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("run");
@@ -470,27 +480,29 @@ export default function Home() {
 
   return (
     <main className="workspace">
-      <nav className="top-tabs" aria-label="Nif-Finder sections">
-        {[
-          ["run", "Run"],
-          ["manual", "Manual"],
-          ["about", "About"],
-        ].map(([id, label]) => (
-          <button
-            key={id}
-            className={activeTab === id ? "top-tab active" : "top-tab"}
-            type="button"
-            onClick={() => setActiveTab(id as ActiveTab)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      <header className="top-menu">
+        <div className="top-menu-brand-row" aria-label="Nif-Finder site header">
+          <span className="top-menu-name">Nif-Finder</span>
+          <span className="top-menu-title">Nitrogen fixation gene finder</span>
+        </div>
+        <nav className="top-tabs" aria-label="Nif-Finder sections">
+          {navigationTabs.map(({ id, label, icon: Icon }) => (
+            <button
+              key={id}
+              className={activeTab === id ? "top-tab active" : "top-tab"}
+              type="button"
+              onClick={() => setActiveTab(id)}
+            >
+              <Icon aria-hidden="true" size={15} strokeWidth={2} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </nav>
+      </header>
 
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-copy">
-            <h1>Nif-Finder</h1>
             <p>
               Web tool for detecting and classifying nitrogen fixation (<em>nif</em>) genes, including <em>nifH</em>,{" "}
               <em>nifD</em>, <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, and <em>nifB</em>, from protein or genome FASTA
@@ -508,7 +520,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <img className="brand-figure" src="/nif_phylogeny_transparent.png" alt="" aria-hidden="true" />
+          <img className="brand-figure" src="/nifh_scatter_transparent.png" alt="" aria-hidden="true" />
         </div>
 
         {activeTab === "run" ? (

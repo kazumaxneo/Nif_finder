@@ -44,7 +44,7 @@ textarea {
   flex-direction: column;
   gap: 8px;
   min-height: 100vh;
-  padding: 12px 18px 34px;
+  padding: 10px 18px 34px;
 }
 
 .sidebar {
@@ -81,10 +81,10 @@ textarea {
 
 .brand-figure {
   flex: 0 0 auto;
-  max-height: 220px;
+  max-height: 240px;
   object-fit: contain;
-  opacity: 0.88;
-  width: clamp(150px, 24%, 235px);
+  opacity: 0.94;
+  width: clamp(170px, 26%, 260px);
 }
 
 .brand h1,
@@ -138,25 +138,61 @@ textarea {
   text-decoration: underline;
 }
 
+.top-menu {
+  background: #ffffff;
+  border-bottom: 1px solid #dfe5e8;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 auto 2px;
+  max-width: 960px;
+  padding: 0 0 1px;
+  width: 100%;
+}
+
+.top-menu-brand-row {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  line-height: 1.1;
+  min-height: 24px;
+}
+
+.top-menu-name {
+  color: #2fa35b;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.top-menu-title {
+  color: #17202a;
+  font-size: 20px;
+  font-weight: 600;
+}
+
 .top-tabs {
   align-items: center;
   display: flex;
-  gap: 18px;
+  gap: 24px;
   justify-content: flex-start;
-  margin: 0 auto -2px;
-  max-width: 960px;
+  min-height: 29px;
   width: 100%;
 }
 
 .top-tab {
+  align-items: center;
   background: transparent;
   border: 0;
+  border-bottom: 3px solid transparent;
   color: #33404d;
   cursor: pointer;
-  font-size: 17px;
+  display: inline-flex;
+  gap: 5px;
+  font-size: 14px;
   font-weight: 400;
-  min-height: 24px;
-  padding: 0;
+  min-height: 29px;
+  padding: 0 0 7px;
 }
 
 .top-tab:hover {
@@ -165,6 +201,7 @@ textarea {
 
 .top-tab.active {
   color: var(--primary-strong);
+  border-bottom-color: #46b36a;
 }
 
 .field,
