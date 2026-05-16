@@ -520,7 +520,7 @@ export default function Home() {
               </p>
             </div>
           </div>
-          <img className="brand-figure" src="/nifh_scatter_transparent.png" alt="" aria-hidden="true" />
+          <img className="brand-figure" src="/nif_scatter_panels_transparent.png" alt="" aria-hidden="true" />
         </div>
 
         {activeTab === "run" ? (

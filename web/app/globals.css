@@ -81,10 +81,10 @@ textarea {
 
 .brand-figure {
   flex: 0 0 auto;
-  max-height: 240px;
+  max-height: 235px;
   object-fit: contain;
   opacity: 0.94;
-  width: clamp(170px, 26%, 260px);
+  width: clamp(230px, 36%, 350px);
 }
 
 .brand h1,
