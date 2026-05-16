@@ -611,10 +611,7 @@ export default function Home() {
           {loading ? "Running" : "Run analysis"}
         </button>
         {loading ? (
-          <p className="input-note running-note">
-            Analysis is running. Results may take several minutes, especially for large FASTA files or when the compute
-            server is busy.
-          </p>
+          <p className="input-note running-note">Analysis is running. Results may take several minutes</p>
         ) : null}
       </aside>
 

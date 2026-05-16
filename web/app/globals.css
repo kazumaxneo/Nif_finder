@@ -223,7 +223,10 @@ input:focus {
 }
 
 .running-note {
-  margin-top: -8px;
+  color: #7a4a00;
+  font-size: 15px;
+  font-weight: 700;
+  margin-top: -6px;
 }
 
 .file-button,
