@@ -48,8 +48,8 @@ TRACK_LINE_KWS = {"color": "#20242a", "lw": 0.45, "zorder": 0}
 class AnalyzeRequest(BaseModel):
     fasta: str = Field(..., min_length=1)
     genbank: str | None = None
-    jobs: int = Field(default=1, ge=1, le=6)
-    cpu: int = Field(default=4, ge=1, le=32)
+    jobs: int = Field(default=1, ge=1, le=4)
+    cpu: int = Field(default=4, ge=1, le=12)
     plot: bool = True
     evalue: float = Field(default=1e-10, gt=0)
 

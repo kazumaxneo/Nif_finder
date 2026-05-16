@@ -26,6 +26,8 @@ type ApiResponse = {
 };
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
+const maxJobs = 4;
+const maxCpu = 12;
 const exampleDatasets = [
   { id: "none", label: "None" },
   { id: "leptolyngbya-boryana-dg5", label: "Leptolyngbya boryana dg5" },
@@ -107,6 +109,11 @@ export default function Home() {
     });
   }, [records]);
   const totalNifCopies = nifSummary.reduce((sum, row) => sum + row.total, 0);
+
+  function clampNumber(value: number, min: number, max: number) {
+    if (!Number.isFinite(value)) return min;
+    return Math.min(max, Math.max(min, Math.trunc(value)));
+  }
 
   async function loadExampleDataset(dataset: string) {
     setExampleDataset(dataset);
@@ -550,11 +557,23 @@ export default function Home() {
             </div>
             <label>
               Jobs
-              <input type="number" min={1} max={6} value={jobs} onChange={(event) => setJobs(Number(event.target.value))} />
+              <input
+                type="number"
+                min={1}
+                max={maxJobs}
+                value={jobs}
+                onChange={(event) => setJobs(clampNumber(Number(event.target.value), 1, maxJobs))}
+              />
             </label>
             <label>
               CPU
-              <input type="number" min={1} max={24} value={cpu} onChange={(event) => setCpu(Number(event.target.value))} />
+              <input
+                type="number"
+                min={1}
+                max={maxCpu}
+                value={cpu}
+                onChange={(event) => setCpu(clampNumber(Number(event.target.value), 1, maxCpu))}
+              />
             </label>
             <label>
               E-value threshold
@@ -592,7 +611,10 @@ export default function Home() {
           {loading ? "Running" : "Run analysis"}
         </button>
         {loading ? (
-          <p className="input-note running-note">Analysis may take several minutes when the compute server is busy.</p>
+          <p className="input-note running-note">
+            Analysis is running. Results may take several minutes, especially for large FASTA files or when the compute
+            server is busy.
+          </p>
         ) : null}
       </aside>
 
