@@ -75,7 +75,10 @@ type ZipEntry = {
   data: Uint8Array;
 };
 
+type ActiveTab = "run" | "manual" | "about";
+
 export default function Home() {
+  const [activeTab, setActiveTab] = useState<ActiveTab>("run");
   const [fasta, setFasta] = useState("");
   const [genbank, setGenbank] = useState("");
   const [genbankFileName, setGenbankFileName] = useState("");
@@ -467,6 +470,23 @@ export default function Home() {
 
   return (
     <main className="workspace">
+      <nav className="top-tabs" aria-label="Nif-Finder sections">
+        {[
+          ["run", "Run"],
+          ["manual", "Manual"],
+          ["about", "About"],
+        ].map(([id, label]) => (
+          <button
+            key={id}
+            className={activeTab === id ? "top-tab active" : "top-tab"}
+            type="button"
+            onClick={() => setActiveTab(id as ActiveTab)}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
       <aside className="sidebar">
         <div className="brand">
           <div className="brand-copy">
@@ -497,6 +517,8 @@ export default function Home() {
           <img className="brand-figure" src="/nif_phylogeny_transparent.png" alt="" aria-hidden="true" />
         </div>
 
+        {activeTab === "run" ? (
+          <>
         <label className="field">
           Protein FASTA
           <textarea
@@ -613,8 +635,11 @@ export default function Home() {
         {loading ? (
           <p className="input-note running-note">Analysis is running. Results may take several minutes</p>
         ) : null}
+          </>
+        ) : null}
       </aside>
 
+      {activeTab === "run" ? (
       <section className="results">
         <div className="summary-row">
           <div className="counter">{totalNifCopies} nif copies identified</div>
@@ -776,6 +801,113 @@ export default function Home() {
           </div>
         </footer>
       </section>
+      ) : (
+        <section className="info-page">
+          {activeTab === "manual" ? (
+            <article className="manual-body">
+              <h2>Manual</h2>
+              <p>
+                Nif-Finder detects and classifies nitrogen fixation genes, including <em>nifH</em>, <em>nifD</em>,{" "}
+                <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, and <em>nifB</em>, from protein FASTA input. It uses
+                HMMER3 hmmscan and nearest-neighbour classification on homology and protein length plots.
+              </p>
+
+              <figure className="manual-figure">
+                <img src="/manual-run-annotated.jpg" alt="Annotated Nif-Finder Run page controls" />
+              </figure>
+
+              <h3>① Paste protein FASTA</h3>
+              <p>
+                Paste protein sequences into the Protein FASTA field. The web interface accepts protein FASTA input up
+                to 10 MB.
+              </p>
+
+              <h3>② Select an example dataset</h3>
+              <p>
+                You can load a built-in example dataset, or keep None when analysing your own data.
+              </p>
+
+              <h3>③ Upload protein FASTA</h3>
+              <p>
+                Instead of pasting sequences, you can upload a local <code>.faa</code>, <code>.fa</code>,{" "}
+                <code>.fasta</code>, or <code>.txt</code> file.
+              </p>
+
+              <h3>④ Upload GenBank for genome position plots</h3>
+              <p>
+                A GenBank file is optional. When it is provided, Nif-Finder can show where the detected <em>nif</em>{" "}
+                genes are located on the genome, including whole-genome overview and enlarged local context plots around
+                matched CDS features. This is useful for checking gene order, fragmented genes, and neighbouring coding
+                sequences. The GenBank upload limit is 30 MB.
+              </p>
+
+              <h3>⑤ Adjust analysis parameters</h3>
+              <p>
+                Jobs and CPU are parameters for one submitted FASTA analysis. The default settings are recommended for
+                most web analyses: jobs = 1, CPU = 4, and E-value threshold = 1e-10.
+              </p>
+
+              <h3>⑥ Choose output options</h3>
+              <p>
+                Plot output controls whether the scatter plot is returned. Show only nif hits filters the result display
+                to detected <em>nif</em> genes.
+              </p>
+
+              <h3>⑦ Run analysis</h3>
+              <p>
+                Press Run analysis to start the analysis. Results include the query identifier, -log10(E-value),
+                alignment length, query protein length, predicted gene, and completeness status. Nif hits are labelled
+                as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result tables, detected nif FASTA
+                sequences, the scatter plot, and any genome context figures generated from the optional GenBank input.
+              </p>
+
+              <h3>Command-line use for many FAA files</h3>
+              <p>
+                For many <code>.faa</code> files, the command-line version is more suitable than the web interface
+                because each file can be processed as an independent job with GNU parallel. On a 16-core machine, a
+                practical starting point is to run 16 single-file jobs and keep each HMMscan lightweight:
+              </p>
+              <pre>{`mkdir -p results
+find . -maxdepth 1 -name "*.faa" | parallel -j 16 '
+  base=$(basename {} .faa)
+  python Nif_finderv0_24.py -q {} -o results/\${base} --jobs 1 --cpu 1 -s -p
+'`}</pre>
+              <p>
+                For genome DNA FASTA, the command-line version can also run 6-frame translation internally with the{" "}
+                <code>-g</code> option. This is useful for detecting <em>nif</em> genes on scaffolds or sequences that
+                may include interrupted or rearranged gene structures.
+              </p>
+            </article>
+          ) : null}
+
+          {activeTab === "about" ? (
+            <div className="about-list">
+              <article className="info-card citation-card">
+                <div>
+                  <h3>Citation</h3>
+                  <p>
+                    Uesaka K, Fujita Y. Accurate prediction of nitrogen fixation in cyanobacteria reveals the dynamic
+                    evolution driving high retention rate with mosaic distribution. <em>bioRxiv</em>. 2026.
+                  </p>
+                  <a href="https://doi.org/10.64898/2026.01.15.699626" target="_blank" rel="noreferrer">
+                    https://doi.org/10.64898/2026.01.15.699626
+                  </a>
+                  <a
+                    className="github-icon-link"
+                    href="https://github.com/kazumaxneo/Nif_finder"
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label="Open Nif-Finder on GitHub"
+                    title="Open Nif-Finder on GitHub"
+                  >
+                    <img src="/github-mark.jpg" alt="" aria-hidden="true" />
+                  </a>
+                </div>
+                </article>
+            </div>
+          ) : null}
+        </section>
+      )}
     </main>
   );
 }
