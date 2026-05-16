@@ -42,9 +42,9 @@ textarea {
 .workspace {
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 8px;
   min-height: 100vh;
-  padding: 28px 18px 34px;
+  padding: 12px 18px 34px;
 }
 
 .sidebar {
@@ -140,32 +140,29 @@ textarea {
 .top-tabs {
   align-items: center;
   display: flex;
-  gap: 8px;
+  gap: 18px;
   justify-content: flex-start;
-  margin: -6px auto 2px;
+  margin: 0 auto -2px;
   max-width: 960px;
   width: 100%;
 }
 
 .top-tab {
   background: transparent;
-  border: 1px solid #17202a;
-  border-radius: 5px;
+  border: 0;
   color: #33404d;
   cursor: pointer;
   font-size: 15px;
   font-weight: 750;
-  min-height: 34px;
-  padding: 5px 14px;
+  min-height: 24px;
+  padding: 0;
 }
 
 .top-tab:hover {
-  background: #f8fafb;
   color: var(--primary-strong);
 }
 
 .top-tab.active {
-  background: #f8fafb;
   color: var(--primary-strong);
 }
 
@@ -589,6 +586,8 @@ input:focus {
 
 .info-card a.github-icon-link {
   display: flex;
+  margin-left: 0;
+  margin-right: auto;
   margin-top: 14px;
 }
 
@@ -801,7 +800,7 @@ th {
 
 @media (max-width: 900px) {
   .workspace {
-    padding: 18px 14px 24px;
+    padding: 10px 14px 24px;
   }
 
   .sidebar {
@@ -823,7 +822,7 @@ th {
   }
 
   .top-tab {
-    flex: 1 0 auto;
+    flex: 0 0 auto;
   }
 
   .info-grid {

@@ -506,12 +506,6 @@ export default function Home() {
                   doi:10.64898/2026.01.15.699626
                 </a>
               </p>
-              <p>
-                Code:{" "}
-                <a href="https://github.com/kazumaxneo/Nif_finder" target="_blank" rel="noreferrer">
-                  github.com/kazumaxneo/Nif_finder
-                </a>
-              </p>
             </div>
           </div>
           <img className="brand-figure" src="/nif_phylogeny_transparent.png" alt="" aria-hidden="true" />
@@ -900,7 +894,7 @@ find . -maxdepth 1 -name "*.faa" | parallel -j 16 '
                     aria-label="Open Nif-Finder on GitHub"
                     title="Open Nif-Finder on GitHub"
                   >
-                    <img src="/github-mark.jpg" alt="" aria-hidden="true" />
+                    <img src="/github-mark.png" alt="" aria-hidden="true" />
                   </a>
                 </div>
                 </article>
