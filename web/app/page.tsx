@@ -867,6 +867,8 @@ export default function Home() {
                 sequences, the scatter plot, and any genome context figures generated from the optional GenBank input.
               </p>
 
+              <h2 className="manual-section-break">Result</h2>
+
               <h3>Reading the scatter plot results</h3>
               <p>
                 The scatter plot summarizes homology search results for the six target <em>nif</em> proteins. Each panel
