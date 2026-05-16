@@ -546,7 +546,7 @@ export default function Home() {
           ) : null}
         </div>
         <p className="input-note">
-          Optional GenBank file for genome plotting. Max size: 25 MB.{" "}
+          Optional GenBank file for genome plotting. Max size: 30 MB.{" "}
           {genbankFileName ? `Loaded: ${genbankFileName}` : "No GenBank loaded."}
         </p>
 
