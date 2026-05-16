@@ -551,6 +551,10 @@ input:focus {
   margin: 22px 0 4px;
 }
 
+.manual-figure-wide {
+  margin-top: 14px;
+}
+
 .manual-figure img {
   border: 1px solid var(--line);
   border-radius: 8px;

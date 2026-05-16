@@ -866,6 +866,34 @@ export default function Home() {
                 as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result tables, detected nif FASTA
                 sequences, the scatter plot, and any genome context figures generated from the optional GenBank input.
               </p>
+
+              <h3>Reading the scatter plot results</h3>
+              <p>
+                The scatter plot summarizes homology search results for the six target <em>nif</em> proteins. Each panel
+                corresponds to one protein: <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>,{" "}
+                <em>nifN</em>, or <em>nifB</em>. The x-axis shows protein length in amino acids, and the y-axis shows
+                -log10(E-value), so points higher on the plot represent stronger matches. Dashed circles indicate the
+                region where full-length hits of the target <em>nif</em> protein are expected. Circles represent hits
+                from complete genomes, and triangles represent hits from draft genomes. Partial-length points outside
+                the full-length region may indicate fragmented <em>nif</em> genes, especially in draft assemblies.
+                Double dashed circles mark <em>nifE</em>-<em>nifN</em> fusion proteins.
+              </p>
+              <figure className="manual-figure manual-figure-wide">
+                <img src="/manual-scatter-results.jpg" alt="Annotated Nif-Finder scatter plot result explanation" />
+              </figure>
+
+              <h3>Reading genome position plots</h3>
+              <p>
+                When a GenBank file is provided, Nif-Finder can draw genome position plots for detected <em>nif</em>{" "}
+                genes. The overview plot shows where the <em>nif</em> region falls on the full sequence, and the local
+                context plot enlarges the matched region. Colored arrows are detected <em>nif</em> genes, gray arrows
+                are neighbouring coding sequences, and labels below colored arrows show whether each hit is full-length,
+                fragmented, or part of an operon. These plots are useful for checking gene order and whether nearby CDS
+                features support the predicted <em>nif</em> cluster.
+              </p>
+              <figure className="manual-figure manual-figure-wide">
+                <img src="/manual-genome-context-results.jpg" alt="Nif-Finder genome position and local context result" />
+              </figure>
             </article>
           ) : null}
 
