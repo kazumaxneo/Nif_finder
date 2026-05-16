@@ -854,23 +854,6 @@ export default function Home() {
                 as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result tables, detected nif FASTA
                 sequences, the scatter plot, and any genome context figures generated from the optional GenBank input.
               </p>
-
-              <h3>Command-line use for many FAA files</h3>
-              <p>
-                For many <code>.faa</code> files, the command-line version is more suitable than the web interface
-                because each file can be processed as an independent job with GNU parallel. On a 16-core machine, a
-                practical starting point is to run 16 single-file jobs and keep each HMMscan lightweight:
-              </p>
-              <pre>{`mkdir -p results
-find . -maxdepth 1 -name "*.faa" | parallel -j 16 '
-  base=$(basename {} .faa)
-  python Nif_finderv0_24.py -q {} -o results/\${base} --jobs 1 --cpu 1 -s -p
-'`}</pre>
-              <p>
-                For genome DNA FASTA, the command-line version can also run 6-frame translation internally with the{" "}
-                <code>-g</code> option. This is useful for detecting <em>nif</em> genes on scaffolds or sequences that
-                may include interrupted or rearranged gene structures.
-              </p>
             </article>
           ) : null}
 
