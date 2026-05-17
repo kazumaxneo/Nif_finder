@@ -18,6 +18,7 @@ type ApiResponse = {
   plotPngBase64?: string | null;
   genomicContextOverviewSvg?: string | null;
   genomicContextLocalSvg?: string | null;
+  genomicContextGenbank?: string | null;
   genomicContextMessage?: string | null;
   error?: string;
   setup?: string;
@@ -393,8 +394,16 @@ export default function Home() {
     if (response?.genomicContextLocalSvg) {
       entries.push({ name: "nif_finder_local_context.svg", data: textBytes(response.genomicContextLocalSvg) });
     }
+    if (response?.genomicContextGenbank) {
+      entries.push({ name: "nif_finder_local_context.gbk", data: textBytes(response.genomicContextGenbank) });
+    }
 
     downloadBlob("nif_finder_results.zip", new Blob([createZip(entries)], { type: "application/zip" }));
+  }
+
+  function downloadLocalContextGenbank() {
+    if (!response?.genomicContextGenbank) return;
+    downloadText("nif_finder_local_context.gbk", response.genomicContextGenbank, "chemical/x-genbank;charset=utf-8");
   }
 
   function svgDataUri(svg: string) {
@@ -775,6 +784,12 @@ export default function Home() {
             ) : null}
 
             <div className="download-row final-download-row" aria-label="Download results">
+              {response?.genomicContextGenbank ? (
+                <button className="ghost-button" type="button" onClick={downloadLocalContextGenbank}>
+                  <Download size={16} aria-hidden />
+                  Download GenBank region
+                </button>
+              ) : null}
               <button className="ghost-button" type="button" onClick={downloadZip} disabled={records.length === 0}>
                 <Download size={16} aria-hidden />
                 Download ZIP
@@ -864,7 +879,8 @@ export default function Home() {
                 Press Run analysis to start the analysis. Results include the query identifier, -log10(E-value),
                 alignment length, query protein length, predicted gene, and completeness status. Nif hits are labelled
                 as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result tables, detected nif FASTA
-                sequences, the scatter plot, and any genome context figures generated from the optional GenBank input.
+                sequences, the scatter plot, any genome context figures generated from the optional GenBank input, and
+                an annotated GenBank file for the visualized local context region when available.
               </p>
 
               <h2 className="manual-section-break">Result</h2>
