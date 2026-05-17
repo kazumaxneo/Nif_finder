@@ -856,32 +856,32 @@ export default function Home() {
                 <img src="/manual-run-annotated.jpg" alt="Annotated Nif-Finder Run page controls" />
               </figure>
 
-              <h3>① Paste or upload protein FASTA</h3>
+              <h3>1. Paste or upload protein FASTA</h3>
               <p>
                 Paste protein sequences into the Protein FASTA field. Instead of pasting sequences, you can upload a
                 local <code>.faa</code>, <code>.fa</code>, <code>.fasta</code>, or <code>.txt</code> file. The web
                 interface accepts only protein FASTA input, up to 10 MB. For a demo, you can load an example dataset.
               </p>
 
-              <h3>② Upload GenBank for genome position plots (optional)</h3>
+              <h3>2. Upload GenBank for genome position plots (optional)</h3>
               <p>
                 When a full GenBank file is provided, Nif-Finder shows where the detected <em>nif</em> genes are located
                 on the genome. This is useful for checking gene order, fragmented genes, and neighbouring coding
                 sequences. The GenBank upload limit is 30 MB.
               </p>
 
-              <h3>③ Adjust analysis parameters (optional)</h3>
+              <h3>3. Adjust analysis parameters (optional)</h3>
               <p>
                 Jobs and CPU are parameters for the homology search. The default settings are jobs = 1, CPU = 4, and
                 E-value threshold = 1e-10.
               </p>
 
-              <h3>④ Choose output options (optional)</h3>
+              <h3>4. Choose output options (optional)</h3>
               <p>
                 Plot output controls whether the scatter plot is returned.
               </p>
 
-              <h3>⑤ Run analysis</h3>
+              <h3>5. Run analysis</h3>
               <p>
                 Press Run analysis to start the analysis. A run usually takes 1 to 5 minutes. Results include the query
                 identifier, -log10(E-value), alignment length, query protein length, predicted gene, and completeness
@@ -893,22 +893,22 @@ export default function Home() {
 
               <h2 className="manual-section-break">Result</h2>
 
-              <h3>Reading the scatter plot results</h3>
+              <h3>1. The scatter plot of the nif and nif homologues</h3>
               <p>
                 The scatter plot summarizes homology search results for the six target <em>nif</em> proteins. Each panel
                 corresponds to one protein: <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>,{" "}
                 <em>nifN</em>, or <em>nifB</em>. The x-axis shows protein length in amino acids, and the y-axis shows
-                -log10(E-value), so points higher on the plot represent stronger matches. Dashed circles indicate the
-                region where full-length hits of the target <em>nif</em> protein are expected. Circles represent hits
-                from complete genomes, and triangles represent hits from draft genomes. Partial-length points outside
+                -log10(E-value), so points higher on the plot represent stronger matches. Full-length hits of the target
+                <em>nif</em> protein are plotted in and around the dashed circle. Circle plots represent hits from
+                complete genomes, and triangle plots represent hits from draft genomes. Partial-length points outside
                 the full-length region may indicate fragmented <em>nif</em> genes, especially in draft assemblies.
-                Double dashed circles mark <em>nifE</em>-<em>nifN</em> fusion proteins.
+                Double dashed circles show the <em>nifEN</em> operon.
               </p>
               <figure className="manual-figure manual-figure-wide">
                 <img src="/manual-scatter-results.jpg" alt="Annotated Nif-Finder scatter plot result explanation" />
               </figure>
 
-              <h3>Visualization of the nif-encoding region</h3>
+              <h3>2. Visualization of the nif-encoding region</h3>
               <p>
                 When a GenBank file is provided, Nif-Finder draws genome position plots for detected{" "}
                 <em>nifHDKENB</em> genes. The overview plot shows where the <em>nif</em> region is encoded on the full
