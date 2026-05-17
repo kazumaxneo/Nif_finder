@@ -19,6 +19,7 @@ type ApiResponse = {
   genomicContextOverviewSvg?: string | null;
   genomicContextLocalSvg?: string | null;
   genomicContextGenbank?: string | null;
+  genomicContextGenbankFilename?: string | null;
   genomicContextMessage?: string | null;
   error?: string;
   setup?: string;
@@ -394,8 +395,9 @@ export default function Home() {
     if (response?.genomicContextLocalSvg) {
       entries.push({ name: "nif_finder_local_context.svg", data: textBytes(response.genomicContextLocalSvg) });
     }
+    const localContextGenbankFilename = response?.genomicContextGenbankFilename || "nif_finder_local_context.gbk";
     if (response?.genomicContextGenbank) {
-      entries.push({ name: "nif_finder_local_context.gbk", data: textBytes(response.genomicContextGenbank) });
+      entries.push({ name: localContextGenbankFilename, data: textBytes(response.genomicContextGenbank) });
     }
 
     downloadBlob("nif_finder_results.zip", new Blob([createZip(entries)], { type: "application/zip" }));
@@ -403,7 +405,11 @@ export default function Home() {
 
   function downloadLocalContextGenbank() {
     if (!response?.genomicContextGenbank) return;
-    downloadText("nif_finder_local_context.gbk", response.genomicContextGenbank, "chemical/x-genbank;charset=utf-8");
+    downloadText(
+      response.genomicContextGenbankFilename || "nif_finder_local_context.gbk",
+      response.genomicContextGenbank,
+      "chemical/x-genbank;charset=utf-8",
+    );
   }
 
   function svgDataUri(svg: string) {
@@ -787,7 +793,7 @@ export default function Home() {
               {response?.genomicContextGenbank ? (
                 <button className="ghost-button" type="button" onClick={downloadLocalContextGenbank}>
                   <Download size={16} aria-hidden />
-                  Download GenBank region
+                  Download nif-encoding region (gbk)
                 </button>
               ) : null}
               <button className="ghost-button" type="button" onClick={downloadZip} disabled={records.length === 0}>

@@ -71,6 +71,7 @@ class AnalyzeResponse(BaseModel):
     genomicContextOverviewSvg: str | None = None
     genomicContextLocalSvg: str | None = None
     genomicContextGenbank: str | None = None
+    genomicContextGenbankFilename: str | None = None
     genomicContextMessage: str | None = None
     runner: str = "nif-finder-compute"
 
@@ -472,7 +473,17 @@ def group_local_regions(matches: list[MatchedHit]) -> list[tuple[str, int, int, 
     return regions
 
 
-def build_local_context_genbank(genbank: str, matches: list[MatchedHit]) -> str | None:
+def safe_filename(name: str, suffix: str) -> str:
+    safe = "".join(char if char.isalnum() or char in "._-" else "_" for char in name)
+    safe = "_".join(part for part in safe.split("_") if part)
+    return f"{safe or 'nif_finder_local_context'}{suffix}"
+
+
+def local_region_label(contig: str, start: int, end: int) -> str:
+    return f"{contig}: {start + 1:,}-{end:,}"
+
+
+def build_local_context_genbank(genbank: str, matches: list[MatchedHit]) -> tuple[str | None, str | None]:
     records = list(SeqIO.parse(StringIO(genbank), "genbank"))
     records_by_contig = {
         (record.id or record.name or "record"): record
@@ -484,7 +495,8 @@ def build_local_context_genbank(genbank: str, matches: list[MatchedHit]) -> str 
     }
     region_records = []
 
-    for index, (contig, start, end, region_matches) in enumerate(group_local_regions(matches), start=1):
+    regions = group_local_regions(matches)
+    for index, (contig, start, end, region_matches) in enumerate(regions, start=1):
         record = records_by_contig.get(contig)
         if record is None:
             continue
@@ -519,10 +531,15 @@ def build_local_context_genbank(genbank: str, matches: list[MatchedHit]) -> str 
         region_records.append(sub_record)
 
     if not region_records:
-        return None
+        return None, None
     output = StringIO()
     SeqIO.write(region_records, output, "genbank")
-    return output.getvalue()
+    if len(regions) == 1:
+        contig, start, end, _region_matches = regions[0]
+        filename = safe_filename(local_region_label(contig, start, end), ".gbk")
+    else:
+        filename = "nif_finder_local_context_regions.gbk"
+    return output.getvalue(), filename
 
 
 def should_hide_whole_genome_view(matches: list[MatchedHit]) -> bool:
@@ -609,11 +626,12 @@ def build_genomic_context(
         if not hide_overview:
             build_overview_svg(matches, overview_path)
         build_local_context_svg(matches, features, local_path)
-        local_genbank = build_local_context_genbank(genbank, matches)
+        local_genbank, local_genbank_filename = build_local_context_genbank(genbank, matches)
         return {
             "genomicContextOverviewSvg": None if hide_overview else svg_to_text(overview_path),
             "genomicContextLocalSvg": svg_to_text(local_path),
             "genomicContextGenbank": local_genbank,
+            "genomicContextGenbankFilename": local_genbank_filename,
             "genomicContextMessage": None,
         }
     except Exception as exc:
