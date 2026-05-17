@@ -30,6 +30,7 @@ type ApiResponse = {
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
 const maxJobs = 4;
 const maxCpu = 12;
+const maxContextPaddingKb = 30;
 const exampleDatasets = [
   { id: "none", label: "None" },
   { id: "leptolyngbya-boryana-dg5", label: "Leptolyngbya boryana dg5" },
@@ -96,6 +97,7 @@ export default function Home() {
   const [genbankFileName, setGenbankFileName] = useState("");
   const [jobs, setJobs] = useState(1);
   const [cpu, setCpu] = useState(4);
+  const [contextPaddingKb, setContextPaddingKb] = useState(10);
   const [plotOutput, setPlotOutput] = useState(true);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
@@ -425,6 +427,7 @@ export default function Home() {
         genbank: genbank.trim() || undefined,
         jobs,
         cpu,
+        contextPaddingKb,
         plot: plotOutput,
         evalue: Number(evalueThreshold),
       });
@@ -618,13 +621,23 @@ export default function Home() {
                 onChange={(event) => setCpu(clampNumber(Number(event.target.value), 1, maxCpu))}
               />
             </label>
-            <label>
+            <label className="evalue-field">
               E-value threshold
               <input
                 type="text"
                 inputMode="decimal"
                 value={evalueThreshold}
                 onChange={(event) => setEvalueThreshold(event.target.value)}
+              />
+            </label>
+            <label className="context-padding-field">
+              Context padding (kb)
+              <input
+                type="number"
+                min={1}
+                max={maxContextPaddingKb}
+                value={contextPaddingKb}
+                onChange={(event) => setContextPaddingKb(clampNumber(Number(event.target.value), 1, maxContextPaddingKb))}
               />
             </label>
           </div>
@@ -871,7 +884,7 @@ export default function Home() {
               <h3>⑤ Adjust analysis parameters</h3>
               <p>
                 Jobs and CPU are parameters for one submitted FASTA analysis. The default settings are recommended for
-                most web analyses: jobs = 1, CPU = 4, and E-value threshold = 1e-10.
+                most web analyses: jobs = 1, CPU = 4, E-value threshold = 1e-10, and context padding = 10 kb.
               </p>
 
               <h3>⑥ Choose output options</h3>

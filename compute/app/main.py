@@ -50,6 +50,7 @@ class AnalyzeRequest(BaseModel):
     genbank: str | None = None
     jobs: int = Field(default=1, ge=1, le=4)
     cpu: int = Field(default=4, ge=1, le=12)
+    contextPaddingKb: int = Field(default=10, ge=1, le=30)
     plot: bool = True
     evalue: float = Field(default=1e-10, gt=0)
 
@@ -444,7 +445,7 @@ def build_overview_svg(matches: list[MatchedHit], out_path: Path) -> None:
     gv.savefig(out_path, dpi=140, pad_inches=0.25)
 
 
-def group_local_regions(matches: list[MatchedHit]) -> list[tuple[str, int, int, list[MatchedHit]]]:
+def group_local_regions(matches: list[MatchedHit], context_padding: int = LOCAL_CONTEXT_PADDING) -> list[tuple[str, int, int, list[MatchedHit]]]:
     regions: list[tuple[str, int, int, list[MatchedHit]]] = []
     by_contig: dict[str, list[MatchedHit]] = {}
     for match in matches:
@@ -460,15 +461,15 @@ def group_local_regions(matches: list[MatchedHit]) -> list[tuple[str, int, int, 
                 current_end = max(current_end, match.feature.end)
             else:
                 contig_length = current[0].feature.contig_length
-                start = max(0, min(m.feature.start for m in current) - LOCAL_CONTEXT_PADDING)
-                end = min(contig_length, max(m.feature.end for m in current) + LOCAL_CONTEXT_PADDING)
+                start = max(0, min(m.feature.start for m in current) - context_padding)
+                end = min(contig_length, max(m.feature.end for m in current) + context_padding)
                 regions.append((contig, start, end, current))
                 current = [match]
                 current_end = match.feature.end
         if current:
             contig_length = current[0].feature.contig_length
-            start = max(0, min(m.feature.start for m in current) - LOCAL_CONTEXT_PADDING)
-            end = min(contig_length, max(m.feature.end for m in current) + LOCAL_CONTEXT_PADDING)
+            start = max(0, min(m.feature.start for m in current) - context_padding)
+            end = min(contig_length, max(m.feature.end for m in current) + context_padding)
             regions.append((contig, start, end, current))
     return regions
 
@@ -483,7 +484,7 @@ def local_region_label(contig: str, start: int, end: int) -> str:
     return f"{contig}: {start + 1:,}-{end:,}"
 
 
-def build_local_context_genbank(genbank: str, matches: list[MatchedHit]) -> tuple[str | None, str | None]:
+def build_local_context_genbank(genbank: str, matches: list[MatchedHit], context_padding: int) -> tuple[str | None, str | None]:
     records = list(SeqIO.parse(StringIO(genbank), "genbank"))
     records_by_contig = {
         (record.id or record.name or "record"): record
@@ -495,7 +496,7 @@ def build_local_context_genbank(genbank: str, matches: list[MatchedHit]) -> tupl
     }
     region_records = []
 
-    regions = group_local_regions(matches)
+    regions = group_local_regions(matches, context_padding)
     for index, (contig, start, end, region_matches) in enumerate(regions, start=1):
         record = records_by_contig.get(contig)
         if record is None:
@@ -542,8 +543,8 @@ def build_local_context_genbank(genbank: str, matches: list[MatchedHit]) -> tupl
     return output.getvalue(), filename
 
 
-def should_hide_whole_genome_view(matches: list[MatchedHit]) -> bool:
-    regions = group_local_regions(matches)
+def should_hide_whole_genome_view(matches: list[MatchedHit], context_padding: int) -> bool:
+    regions = group_local_regions(matches, context_padding)
     by_contig: dict[str, list[tuple[str, int, int, list[MatchedHit]]]] = {}
     for region in regions:
         by_contig.setdefault(region[0], []).append(region)
@@ -564,8 +565,8 @@ def should_hide_whole_genome_view(matches: list[MatchedHit]) -> bool:
     return True
 
 
-def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature], out_path: Path) -> None:
-    regions = group_local_regions(matches)
+def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature], out_path: Path, context_padding: int) -> None:
+    regions = group_local_regions(matches, context_padding)
     fig_height = max(0.55, min(0.9, 4.5 / max(1, len(regions))))
     gv = GenomeViz(fig_width=12, fig_track_height=fig_height, show_axis=False, theme="light")
     hit_keys = {
@@ -606,6 +607,7 @@ def build_genomic_context(
     records: list[dict[str, Any]],
     tmp_dir: Path,
     fasta: str | None = None,
+    context_padding: int = LOCAL_CONTEXT_PADDING,
 ) -> dict[str, str | None]:
     if not genbank:
         return {}
@@ -622,11 +624,11 @@ def build_genomic_context(
             }
         overview_path = tmp_dir / "genomic_context_overview.svg"
         local_path = tmp_dir / "genomic_context_local.svg"
-        hide_overview = should_hide_whole_genome_view(matches)
+        hide_overview = should_hide_whole_genome_view(matches, context_padding)
         if not hide_overview:
             build_overview_svg(matches, overview_path)
-        build_local_context_svg(matches, features, local_path)
-        local_genbank, local_genbank_filename = build_local_context_genbank(genbank, matches)
+        build_local_context_svg(matches, features, local_path, context_padding)
+        local_genbank, local_genbank_filename = build_local_context_genbank(genbank, matches, context_padding)
         return {
             "genomicContextOverviewSvg": None if hide_overview else svg_to_text(overview_path),
             "genomicContextLocalSvg": svg_to_text(local_path),
@@ -766,7 +768,7 @@ def analyze(
                 output = "\n".join(part for part in [completed.stdout.strip(), completed.stderr.strip()] if part)
                 plot_message = output[-1000:] if output else "Nif-Finder did not produce a scatter plot."
 
-            genomic_context = build_genomic_context(genbank, records, tmp_dir, fasta)
+            genomic_context = build_genomic_context(genbank, records, tmp_dir, fasta, request.contextPaddingKb * 1000)
     finally:
         analysis_semaphore.release()
 

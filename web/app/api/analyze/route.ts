@@ -16,6 +16,7 @@ type AnalyzeRequest = {
   genbank?: string;
   jobs?: number;
   cpu?: number;
+  contextPaddingKb?: number;
   plot?: boolean;
   evalue?: number;
 };
@@ -165,6 +166,7 @@ export async function POST(request: NextRequest) {
         genbank: body.genbank?.trim() || undefined,
         jobs: body.jobs ?? 1,
         cpu: body.cpu ?? 4,
+        contextPaddingKb: body.contextPaddingKb ?? 10,
         plot: body.plot ?? true,
         evalue: body.evalue ?? 1e-10,
       }),

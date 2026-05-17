@@ -385,8 +385,12 @@ input:focus {
   padding: 7px 9px;
 }
 
-.run-settings label:last-child {
+.run-settings .evalue-field {
   width: 118px;
+}
+
+.run-settings .context-padding-field {
+  width: 148px;
 }
 
 .compact-field {
@@ -893,8 +897,12 @@ th {
     width: min(88px, 100%);
   }
 
-  .run-settings label:last-child {
+  .run-settings .evalue-field {
     width: min(118px, 100%);
+  }
+
+  .run-settings .context-padding-field {
+    width: min(148px, 100%);
   }
 
   .field {
