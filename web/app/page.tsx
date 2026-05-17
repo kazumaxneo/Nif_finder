@@ -906,14 +906,14 @@ export default function Home() {
                 <img src="/manual-scatter-results.jpg" alt="Annotated Nif-Finder scatter plot result explanation" />
               </figure>
 
-              <h3>Reading genome position plots</h3>
+              <h3>Visualization of the nif-encoding region</h3>
               <p>
-                When a GenBank file is provided, Nif-Finder can draw genome position plots for detected <em>nif</em>{" "}
-                genes. The overview plot shows where the <em>nif</em> region falls on the full sequence, and the local
-                context plot enlarges the matched region. Colored arrows are detected <em>nif</em> genes, gray arrows
-                are neighbouring coding sequences, and labels below colored arrows show whether each hit is full-length,
-                fragmented, or part of an operon. These plots are useful for checking gene order and whether nearby CDS
-                features support the predicted <em>nif</em> cluster.
+                When a GenBank file is provided, Nif-Finder draws genome position plots for detected{" "}
+                <em>nifHDKENB</em> genes. The overview plot shows where the <em>nif</em> region is encoded on the full
+                sequence, and the local plot shows a pinpoint view of the <em>nif</em>-encoding region. Colored arrows
+                show detected <em>nif</em> genes, and gray arrows show other ORFs based on the user-provided GenBank
+                file. The labels below <em>nif</em> genes show whether each <em>nif</em> hit is full-length, fragmented,
+                or part of an operon. These plots are useful for checking probable <em>nif</em>-cluster regions.
               </p>
               <figure className="manual-figure manual-figure-wide">
                 <img src="/manual-genome-context-results.jpg" alt="Nif-Finder genome position and local context result" />
