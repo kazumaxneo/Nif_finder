@@ -856,50 +856,39 @@ export default function Home() {
                 <img src="/manual-run-annotated.jpg" alt="Annotated Nif-Finder Run page controls" />
               </figure>
 
-              <h3>① Paste protein FASTA</h3>
+              <h3>① Paste or upload protein FASTA</h3>
               <p>
-                Paste protein sequences into the Protein FASTA field. The web interface accepts protein FASTA input up
-                to 10 MB.
+                Paste protein sequences into the Protein FASTA field. Instead of pasting sequences, you can upload a
+                local <code>.faa</code>, <code>.fa</code>, <code>.fasta</code>, or <code>.txt</code> file. The web
+                interface accepts only protein FASTA input, up to 10 MB. For a demo, you can load an example dataset.
               </p>
 
-              <h3>② Select an example dataset</h3>
+              <h3>② Upload GenBank for genome position plots (optional)</h3>
               <p>
-                You can load a built-in example dataset, or keep None when analysing your own data.
-              </p>
-
-              <h3>③ Upload protein FASTA</h3>
-              <p>
-                Instead of pasting sequences, you can upload a local <code>.faa</code>, <code>.fa</code>,{" "}
-                <code>.fasta</code>, or <code>.txt</code> file.
-              </p>
-
-              <h3>④ Upload GenBank for genome position plots</h3>
-              <p>
-                A GenBank file is optional. When it is provided, Nif-Finder can show where the detected <em>nif</em>{" "}
-                genes are located on the genome, including whole-genome overview and enlarged local context plots around
-                matched CDS features. This is useful for checking gene order, fragmented genes, and neighbouring coding
+                When a full GenBank file is provided, Nif-Finder shows where the detected <em>nif</em> genes are located
+                on the genome. This is useful for checking gene order, fragmented genes, and neighbouring coding
                 sequences. The GenBank upload limit is 30 MB.
               </p>
 
-              <h3>⑤ Adjust analysis parameters</h3>
+              <h3>③ Adjust analysis parameters (optional)</h3>
               <p>
-                Jobs and CPU are parameters for one submitted FASTA analysis. The default settings are recommended for
-                most web analyses: jobs = 1, CPU = 4, E-value threshold = 1e-10, and context padding = 10 kb.
+                Jobs and CPU are parameters for the homology search. The default settings are jobs = 1, CPU = 4, and
+                E-value threshold = 1e-10.
               </p>
 
-              <h3>⑥ Choose output options</h3>
+              <h3>④ Choose output options (optional)</h3>
               <p>
-                Plot output controls whether the scatter plot is returned. Show only nif hits filters the result display
-                to detected <em>nif</em> genes.
+                Plot output controls whether the scatter plot is returned.
               </p>
 
-              <h3>⑦ Run analysis</h3>
+              <h3>⑤ Run analysis</h3>
               <p>
-                Press Run analysis to start the analysis. Results include the query identifier, -log10(E-value),
-                alignment length, query protein length, predicted gene, and completeness status. Nif hits are labelled
-                as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result tables, detected nif FASTA
-                sequences, the scatter plot, any genome context figures generated from the optional GenBank input, and
-                an annotated GenBank file for the visualized local context region when available.
+                Press Run analysis to start the analysis. A run usually takes 1 to 5 minutes. Results include the query
+                identifier, -log10(E-value), alignment length, query protein length, predicted gene, and completeness
+                status. Nif hits are labelled as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result
+                tables, detected nif FASTA sequences, the scatter plot, any genome context figures generated from the
+                optional GenBank input, and an annotated GenBank file for the visualized local context region when
+                available.
               </p>
 
               <h2 className="manual-section-break">Result</h2>
