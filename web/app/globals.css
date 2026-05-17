@@ -390,7 +390,7 @@ input:focus {
 }
 
 .run-settings .context-padding-field {
-  width: 148px;
+  width: 220px;
 }
 
 .compact-field {
@@ -902,7 +902,7 @@ th {
   }
 
   .run-settings .context-padding-field {
-    width: min(148px, 100%);
+    width: min(220px, 100%);
   }
 
   .field {

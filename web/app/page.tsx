@@ -631,7 +631,7 @@ export default function Home() {
               />
             </label>
             <label className="context-padding-field">
-              Context padding (kb)
+              Size of the nif-encoding region to be visualized (kb)
               <input
                 type="number"
                 min={1}
