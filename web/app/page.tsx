@@ -913,7 +913,9 @@ export default function Home() {
                 sequence, and the local plot shows a pinpoint view of the <em>nif</em>-encoding region. Colored arrows
                 show detected <em>nif</em> genes, and gray arrows show other ORFs based on the user-provided GenBank
                 file. The labels below <em>nif</em> genes show whether each <em>nif</em> hit is full-length, fragmented,
-                or part of an operon. These plots are useful for checking probable <em>nif</em>-cluster regions.
+                or part of an operon. In the pinpoint view, positions are recalculated from the left edge of the
+                enlarged region, with the upstream end set to +1. These plots are useful for checking probable{" "}
+                <em>nif</em>-cluster regions and for <em>nif</em>-cluster comparison using clinker.
               </p>
               <figure className="manual-figure manual-figure-wide">
                 <img src="/manual-genome-context-results.jpg" alt="Nif-Finder genome position and local context result" />
