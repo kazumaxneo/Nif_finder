@@ -23,7 +23,7 @@ mamba install -c bioconda -y hmmer
 git clone https://github.com/kazumaxneo/Nif_finder.git
 cd Nif_finder/generl_bacteria/
 export NIF_FINDER_DB="$(pwd)"
-python Nif_finderv0_24.py -h
+python Nif_finderv0_25.py -h
 ```
 
 `NIF_FINDER_DB` should point to the directory containing the bundled model
@@ -38,7 +38,7 @@ HMM profiles and reference classification files.
 
 ```bash
 cd Nif_finder/generl_bacteria/
-python Nif_finderv0_24.py \
+python Nif_finderv0_25.py \
   -q protein_test/Calothrix_sp.NIES-4101.faa \
   -p -s
 ```
@@ -51,7 +51,7 @@ same time and divides the CPU budget across them.
 For a faster protein FASTA test run, use profile-level parallelism:
 
 ```bash
-python Nif_finderv0_24.py \
+python Nif_finderv0_25.py \
   -q protein_test/Calothrix_sp.NIES-4101.faa \
   -o Calothrix_fast_test \
   --jobs 3 --cpu 6 \
@@ -64,7 +64,7 @@ To extract the matching nif-encoding region from a GenBank file, provide the
 full GenBank file with `--genbank`:
 
 ```bash
-python Nif_finderv0_24.py \
+python Nif_finderv0_25.py \
   -q ../web/public/examples/leptolyngbya_boryana_dg5.faa \
   --genbank ../web/public/examples/leptolyngbya_boryana_dg5.gbk \
   --context_size_kb 10 \
@@ -88,7 +88,7 @@ input_dir=.
 mkdir -p results
 find "$input_dir" -maxdepth 1 -name "*.faa" | parallel -j 16 '
   base=$(basename {} .faa)
-  python Nif_finderv0_24.py -q {} -o results/${base} --jobs 1 --cpu 1 -s -p
+  python Nif_finderv0_25.py -q {} -o results/${base} --jobs 1 --cpu 1 -s -p
 '
 ```
 
@@ -97,7 +97,7 @@ find "$input_dir" -maxdepth 1 -name "*.faa" | parallel -j 16 '
 Performs 6-frame translation internally, then runs HMMscan on the translated ORFs. Useful for detecting *nif* genes on scaffolds that may carry intervening sequences or rearrangement junctions. Note: takes longer time for 6 frame homology search.
 
 ```bash
-python Nif_finderv0_24.py \
+python Nif_finderv0_25.py \
   -g genome_test/Calothrix_sp.NIES-4101.fna \
   --min_orf_len 30 -p -s
 ```
@@ -287,6 +287,7 @@ Nif-Finder successfully detected the full-length *nifH2* and 3 out of 4 *nifH1* 
 | v0.22 | `-g` genome DNA mode with internal 6-frame translation; `--min_orf_len` option |
 | v0.23 | Bug fix
 | v0.24 | `NIF_FINDER_DB` environment variable support for automatic standard model/reference discovery |
+| v0.25 | CLI GenBank nif-cluster extraction with annotated GBK, genome overview SVG, and local context SVG output |
 
 ---
 

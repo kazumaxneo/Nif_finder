@@ -21,7 +21,7 @@ from pydantic import BaseModel, Field
 
 NIF_FINDER_ROOT = Path(os.environ.get("NIF_FINDER_ROOT", "/app/generl_bacteria"))
 NIF_FINDER_DB = Path(os.environ.get("NIF_FINDER_DB", str(NIF_FINDER_ROOT)))
-NIF_FINDER_SCRIPT = NIF_FINDER_ROOT / "Nif_finderv0_24.py"
+NIF_FINDER_SCRIPT = NIF_FINDER_ROOT / "Nif_finderv0_25.py"
 PYTHON_BIN = os.environ.get("NIF_FINDER_PYTHON", "python")
 MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 MAX_GENBANK_BYTES = int(os.environ.get("MAX_GENBANK_BYTES", str(30 * 1024 * 1024)))

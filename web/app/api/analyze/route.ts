@@ -51,7 +51,7 @@ async function runLocalNifFinder(fasta: string, jobs: number, cpu: number, plot:
     ? path.resolve(process.env.NIF_FINDER_ROOT)
     : path.resolve(process.cwd(), "..", "generl_bacteria");
   const python = process.env.NIF_FINDER_PYTHON ?? "python";
-  const script = path.join(root, "Nif_finderv0_24.py");
+  const script = path.join(root, "Nif_finderv0_25.py");
   const workDir = path.join(tmpdir(), `nif-finder-web-${randomUUID()}`);
   const queryPath = path.join(workDir, "query.faa");
   const outPrefix = path.join(workDir, "result");
