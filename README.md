@@ -60,6 +60,24 @@ python Nif_finderv0_24.py \
 
 See [Memory usage](#memory-usage) for the measured peak memory of this example.
 
+To extract the matching nif-encoding region from a GenBank file, provide the
+full GenBank file with `--genbank`:
+
+```bash
+python Nif_finderv0_24.py \
+  -q ../web/public/examples/leptolyngbya_boryana_dg5.faa \
+  --genbank ../web/public/examples/leptolyngbya_boryana_dg5.gbk \
+  --context_size_kb 10 \
+  -o Leptolyngbya_nif
+```
+
+This writes `Leptolyngbya_nif_nif_encoding_region.gbk`, an annotated GenBank
+file containing the local nif-cluster region. It also writes
+`Leptolyngbya_nif_genome_overview.svg` and
+`Leptolyngbya_nif_local_context.svg` to show the detected nif positions on the
+genome and in the enlarged local region. The extracted region uses the same
+left-edge +1 coordinate convention as the web pinpoint view.
+
 For many `.faa` files, `--jobs` and `--cpu` only speed up each individual
 input file. To use many cores efficiently across many files, run one Nif-Finder
 process per file with GNU parallel. On a 16-core machine, start with 16
@@ -101,6 +119,9 @@ If you need to use a custom model set, you can still specify `-t/--profile` and
 | `-r`, `--reference` | `NIF_FINDER_DB` standard references | Reference TSV file(s); one per gene, same order as `-t` |
 | `-o`, `--outprefix` | input filename | Output file prefix |
 | `-m`, `--matrix_output` | `nif_matrix.tsv` | Gene-status matrix output file (directory mode only) |
+| `--genbank` | — | GenBank file used to extract an annotated nif-encoding local region (`-q` or `-g` mode) |
+| `--genbank_dir` | — | Directory containing GenBank files matching `.faa` basenames (`-d` mode) |
+| `--context_size_kb` | `10` | Flanking region size used for GenBank local-context extraction, 1–30 kb |
 | `-s`, `--save_fasta` | off | Save detected NifHDKENB sequences to FASTA |
 | `-p`, `--plot` | off | Save scatter plot PNG (protein length vs. −log₁₀ E-value) |
 | `-c`, `--cpu` | `8` | Number of CPU threads for HMMscan |
@@ -168,6 +189,19 @@ In directory mode, `nif_matrix.tsv` reports all detected statuses per gene. If a
 ### Nif FASTA sequnece (`-s`)
 
 `<prefix>_nifHDKENB.faa` — protein sequences of all detected *nif* hits, with gene prediction appended to each sequence ID (`>seqid|nifH`, etc.).
+
+### Nif-encoding GenBank region (`--genbank`)
+
+`<prefix>_nif_encoding_region.gbk` — local GenBank region containing detected
+*nif* hits and neighbouring ORFs. Nif-Finder adds qualifiers such as
+`/nif_finder_gene`, `/nif_finder_status`, and `/nif_finder_query` to matched
+CDS features. This file can be used for nif-cluster comparison tools such as
+clinker.
+
+`<prefix>_genome_overview.svg` and `<prefix>_local_context.svg` are also
+written when `--genbank` or `--genbank_dir` is used. These SVG files show the
+whole-genome nif positions and the enlarged local context around matched CDS
+features.
 
 ### Scatter plot (`-p`)
 

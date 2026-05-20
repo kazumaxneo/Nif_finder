@@ -11,6 +11,7 @@ import argparse
 import glob
 import tempfile
 import numpy as np
+from xml.sax.saxutils import escape
 # v0.21 改善内容:
 #   1. 1-NNのスケーリング: z-scoreによる正規化（参照データロード時に一度だけ計算）
 #   2. Full_operon判定の再設計:
@@ -48,6 +49,9 @@ DEFAULT_CPU = 8
 DEFAULT_JOBS = 1
 DEFAULT_LOG_E_VALUE_MIN = 250
 DEFAULT_MIN_ORF_LEN = 10  # 6フレーム翻訳後に保持するORFの最小アミノ酸長
+DEFAULT_CONTEXT_SIZE_KB = 10
+MAX_CONTEXT_SIZE_KB = 30
+LOCAL_CONTEXT_MERGE_DISTANCE = 20000
 OPERON_LENGTH_MULTIPLIER = 1.6
 
 NIF_GENE_THRESHOLDS = {
@@ -489,6 +493,431 @@ def write_selected_fasta(fasta_file, records, output_fasta):
 
 
 # ============================================================
+# GenBank local nif-cluster extraction
+# ============================================================
+
+def normalize_identifier(value):
+    parts = (value or "").strip().lstrip(">").split()
+    return parts[0] if parts else ""
+
+
+def query_identifier_candidates(query):
+    first = normalize_identifier(query)
+    pieces = [first]
+    for separator in ("|", ";", ","):
+        if separator in first:
+            pieces.extend(part.strip() for part in first.split(separator))
+    if "_" in first:
+        pieces.append(first.rsplit("_", 1)[0])
+    seen = set()
+    candidates = []
+    for piece in pieces:
+        if piece and piece not in seen and piece not in NIF_GENES:
+            candidates.append(piece)
+            seen.add(piece)
+    return candidates
+
+
+def query_cds_index_candidate(query):
+    first = normalize_identifier(query)
+    suffix = first.rsplit("_", 1)[-1]
+    if not suffix.isdigit():
+        return None
+    index = int(suffix)
+    return index if index > 0 else None
+
+
+def qualifier_value(feature, key):
+    values = feature.qualifiers.get(key, [])
+    if not values:
+        return None
+    return str(values[0])
+
+
+def parse_fasta_sequences(fasta_file):
+    sequences = {}
+    for record in SeqIO.parse(fasta_file, "fasta"):
+        sequences[normalize_identifier(record.id)] = str(record.seq).replace("*", "").upper()
+    return sequences
+
+
+def parse_genbank_cds_features(genbank_file):
+    features = []
+    records = list(SeqIO.parse(genbank_file, "genbank"))
+    if not records:
+        raise ValueError("No GenBank records were found.")
+
+    for record in records:
+        contig = record.id or record.name or "record"
+        contig_length = len(record.seq)
+        if contig_length <= 0:
+            continue
+        cds_index = 0
+        for feature in record.features:
+            if feature.type != "CDS" or feature.location is None:
+                continue
+            cds_index += 1
+            start = int(feature.location.start)
+            end = int(feature.location.end)
+            if end <= start:
+                continue
+            strand = feature.location.strand if feature.location.strand in (-1, 1) else 1
+            features.append({
+                "contig": contig,
+                "contig_length": contig_length,
+                "cds_index": cds_index,
+                "start": max(0, start),
+                "end": min(contig_length, end),
+                "strand": strand,
+                "protein_id": qualifier_value(feature, "protein_id"),
+                "locus_tag": qualifier_value(feature, "locus_tag"),
+                "old_locus_tag": qualifier_value(feature, "old_locus_tag"),
+                "gene": qualifier_value(feature, "gene"),
+                "translation": (qualifier_value(feature, "translation") or "").replace("*", "").upper() or None,
+            })
+    return features
+
+
+def match_nif_hits_to_genbank(records, features, fasta_sequences=None):
+    by_protein_id = {}
+    by_locus_tag = {}
+    by_old_locus_tag = {}
+    by_gene = {}
+    by_cds_index = {}
+    by_translation = {}
+    for feature in features:
+        by_cds_index.setdefault(feature["cds_index"], feature)
+        if feature["translation"]:
+            by_translation.setdefault(feature["translation"], []).append(feature)
+        for mapping, value in (
+            (by_protein_id, feature["protein_id"]),
+            (by_locus_tag, feature["locus_tag"]),
+            (by_old_locus_tag, feature["old_locus_tag"]),
+            (by_gene, feature["gene"]),
+        ):
+            key = normalize_identifier(value)
+            if key:
+                mapping.setdefault(key, []).append(feature)
+
+    record_list = list(records.values()) if isinstance(records, dict) else list(records)
+    matches = []
+    used = set()
+    prediction_counts = {}
+    for record in record_list:
+        prediction = str(record.get("prediction") or "")
+        if prediction in NIF_GENES:
+            prediction_counts[prediction] = prediction_counts.get(prediction, 0) + 1
+
+    for record in record_list:
+        prediction = str(record.get("prediction") or "")
+        if prediction not in NIF_GENES:
+            continue
+        query = str(record.get("query_name") or record.get("query") or "")
+        candidates = query_identifier_candidates(query)
+        found = []
+        for mapping in (by_protein_id, by_locus_tag, by_old_locus_tag):
+            for candidate in candidates:
+                found = mapping.get(candidate, [])
+                if found:
+                    break
+            if found:
+                break
+        if not found:
+            exact_query = normalize_identifier(query)
+            gene_matches = by_gene.get(exact_query, [])
+            if len(gene_matches) == 1:
+                found = gene_matches
+            elif exact_query == prediction and len(by_gene.get(prediction, [])) == 1:
+                found = by_gene[prediction]
+            elif prediction_counts.get(prediction) == 1 and len(by_gene.get(prediction, [])) == 1:
+                found = by_gene[prediction]
+        if not found:
+            cds_index = query_cds_index_candidate(query)
+            feature = by_cds_index.get(cds_index) if cds_index else None
+            if feature and normalize_identifier(feature["gene"]) == prediction:
+                found = [feature]
+        if not found and fasta_sequences:
+            for candidate in candidates:
+                sequence = fasta_sequences.get(candidate)
+                if not sequence:
+                    continue
+                translated_matches = [
+                    feature
+                    for feature in by_translation.get(sequence, [])
+                    if normalize_identifier(feature["gene"]) in ("", prediction)
+                ]
+                if translated_matches:
+                    found = translated_matches
+                    break
+
+        for feature in found:
+            key = (feature["contig"], feature["start"], feature["end"], prediction)
+            if key in used:
+                continue
+            used.add(key)
+            matches.append({
+                "feature": feature,
+                "prediction": prediction,
+                "query": query,
+                "completeness": str(record.get("gene_status") or record.get("completeness") or ""),
+                "operon_label": record.get("operon_label") or record.get("operonLabel") or None,
+            })
+    return matches
+
+
+def group_local_regions(matches, context_padding):
+    regions = []
+    by_contig = {}
+    for match in matches:
+        by_contig.setdefault(match["feature"]["contig"], []).append(match)
+
+    for contig, contig_matches in sorted(by_contig.items()):
+        ordered = sorted(contig_matches, key=lambda match: match["feature"]["start"])
+        current = []
+        current_end = -1
+        for match in ordered:
+            if not current or match["feature"]["start"] - current_end <= LOCAL_CONTEXT_MERGE_DISTANCE:
+                current.append(match)
+                current_end = max(current_end, match["feature"]["end"])
+            else:
+                contig_length = current[0]["feature"]["contig_length"]
+                start = max(0, min(m["feature"]["start"] for m in current) - context_padding)
+                end = min(contig_length, max(m["feature"]["end"] for m in current) + context_padding)
+                regions.append((contig, start, end, current))
+                current = [match]
+                current_end = match["feature"]["end"]
+        if current:
+            contig_length = current[0]["feature"]["contig_length"]
+            start = max(0, min(m["feature"]["start"] for m in current) - context_padding)
+            end = min(contig_length, max(m["feature"]["end"] for m in current) + context_padding)
+            regions.append((contig, start, end, current))
+    return regions
+
+
+def local_region_label(contig, start, end):
+    return f"{contig}: {start + 1:,}-{end:,}"
+
+
+def svg_arrow(x1, x2, y, strand, color, label=""):
+    x1, x2 = sorted((x1, x2))
+    if x2 - x1 < 2:
+        x2 = x1 + 2
+    height = 18
+    head = min(10, max(4, (x2 - x1) * 0.35))
+    if strand == -1:
+        points = [
+            (x1, y),
+            (x1 + head, y - height / 2),
+            (x2, y - height / 2),
+            (x2, y + height / 2),
+            (x1 + head, y + height / 2),
+        ]
+    else:
+        points = [
+            (x1, y - height / 2),
+            (x2 - head, y - height / 2),
+            (x2, y),
+            (x2 - head, y + height / 2),
+            (x1, y + height / 2),
+        ]
+    point_text = " ".join(f"{x:.1f},{py:.1f}" for x, py in points)
+    parts = [f'<polygon points="{point_text}" fill="{color}" stroke="{color}" stroke-width="0.6" />']
+    if label and x2 - x1 >= 18:
+        parts.append(
+            f'<text x="{(x1 + x2) / 2:.1f}" y="{y - 15:.1f}" text-anchor="middle" '
+            f'font-size="11" font-family="Arial">{escape(label)}</text>'
+        )
+    return "\n".join(parts)
+
+
+def write_svg(path, width, height, body):
+    svg = (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" '
+        f'viewBox="0 0 {width} {height}">\n'
+        '<rect width="100%" height="100%" fill="white"/>\n'
+        f"{body}\n"
+        "</svg>\n"
+    )
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(svg)
+    print(f"Genomic context SVG saved to: {path}")
+
+
+def build_overview_svg(matches, output_svg):
+    contigs = sorted({m["feature"]["contig"]: m["feature"]["contig_length"] for m in matches}.items())
+    if not contigs:
+        return False
+    width = 1200
+    margin_left = 160
+    margin_right = 70
+    row_height = 90
+    height = max(130, 45 + row_height * len(contigs))
+    body = []
+    for idx, (contig, contig_length) in enumerate(contigs):
+        y = 60 + idx * row_height
+        x_start = margin_left
+        x_end = width - margin_right
+        body.append(f'<text x="20" y="{y + 5}" font-size="14" font-family="Arial">{escape(contig)}</text>')
+        body.append(f'<line x1="{x_start}" x2="{x_end}" y1="{y}" y2="{y}" stroke="#20242a" stroke-width="1"/>')
+        body.append(f'<text x="{x_start}" y="{y + 34}" font-size="11" font-family="Arial">1</text>')
+        body.append(
+            f'<text x="{x_end}" y="{y + 34}" text-anchor="end" font-size="11" '
+            f'font-family="Arial">{contig_length:,}</text>'
+        )
+        scale = (x_end - x_start) / max(1, contig_length)
+        for match in sorted((m for m in matches if m["feature"]["contig"] == contig), key=lambda m: m["feature"]["start"]):
+            feature = match["feature"]
+            x1 = x_start + feature["start"] * scale
+            x2 = x_start + feature["end"] * scale
+            label = match["prediction"].replace("nif", "")
+            color = NIF_GENE_COLORS.get(match["prediction"], "#0f766e")
+            body.append(svg_arrow(x1, x2, y, feature["strand"], color, label))
+    write_svg(output_svg, width, height, "\n".join(body))
+    return True
+
+
+def build_local_context_svg(matches, features, context_padding, output_svg):
+    regions = group_local_regions(matches, context_padding)
+    if not regions:
+        return False
+    hit_by_feature = {
+        (match["feature"]["contig"], match["feature"]["start"], match["feature"]["end"]): match
+        for match in matches
+    }
+    width = 1200
+    margin_left = 210
+    margin_right = 45
+    row_height = 110
+    height = max(150, 50 + row_height * len(regions))
+    body = []
+    for idx, (contig, start, end, _region_matches) in enumerate(regions):
+        y = 70 + idx * row_height
+        x_start = margin_left
+        x_end = width - margin_right
+        span = max(1, end - start)
+        body.append(
+            f'<text x="20" y="{y + 5}" font-size="13" font-family="Arial">'
+            f'{escape(local_region_label(contig, start, end))}</text>'
+        )
+        body.append(f'<line x1="{x_start}" x2="{x_end}" y1="{y}" y2="{y}" stroke="#20242a" stroke-width="0.8"/>')
+        overlapping = [
+            feature for feature in features
+            if feature["contig"] == contig and feature["end"] >= start and feature["start"] <= end
+        ]
+        for feature in sorted(overlapping, key=lambda item: item["start"]):
+            clipped_start = max(feature["start"], start)
+            clipped_end = min(feature["end"], end)
+            x1 = x_start + (clipped_start - start) / span * (x_end - x_start)
+            x2 = x_start + (clipped_end - start) / span * (x_end - x_start)
+            hit = hit_by_feature.get((feature["contig"], feature["start"], feature["end"]))
+            if hit:
+                label = hit["operon_label"] if hit["completeness"] == "Full_operon" and hit["operon_label"] else hit["prediction"]
+                color = NIF_GENE_COLORS.get(hit["prediction"], "#0f766e")
+            else:
+                label = ""
+                color = "#c7cdd4"
+            body.append(svg_arrow(x1, x2, y, feature["strand"], color, label))
+            if hit and hit["completeness"]:
+                suffix = {"Full": "(full)", "Fragment": "(frag.)", "Full_operon": "(operon)"}.get(hit["completeness"], "")
+                if suffix:
+                    body.append(
+                        f'<text x="{(x1 + x2) / 2:.1f}" y="{y + 27}" text-anchor="middle" '
+                        f'font-size="10" font-family="Arial" fill="{color}">{suffix}</text>'
+                    )
+    write_svg(output_svg, width, height, "\n".join(body))
+    return True
+
+
+def build_local_context_genbank(genbank_file, matches, context_padding, output_gbk):
+    records = list(SeqIO.parse(genbank_file, "genbank"))
+    records_by_contig = {
+        (record.id or record.name or "record"): record
+        for record in records
+    }
+    hit_by_feature = {
+        (match["feature"]["contig"], match["feature"]["start"], match["feature"]["end"]): match
+        for match in matches
+    }
+    region_records = []
+    regions = group_local_regions(matches, context_padding)
+
+    for index, (contig, start, end, region_matches) in enumerate(regions, start=1):
+        record = records_by_contig.get(contig)
+        if record is None:
+            continue
+        sub_record = record[start:end]
+        region_id = f"{contig}_{start + 1}_{end}"
+        sub_record.id = region_id
+        sub_record.name = region_id[:16]
+        sub_record.description = f"Nif-Finder local context region {index}: {contig}:{start + 1}-{end}"
+        sub_record.annotations["molecule_type"] = record.annotations.get("molecule_type", "DNA")
+        matched_labels = ", ".join(
+            f"{match['prediction']}:{match['query']}:{match['completeness']}"
+            for match in sorted(region_matches, key=lambda item: item["feature"]["start"])
+        )
+        comment = f"Generated by Nif-Finder from {contig}:{start + 1}-{end}. Matched hits: {matched_labels}."
+        if sub_record.annotations.get("comment"):
+            comment = f"{sub_record.annotations['comment']}\n{comment}"
+        sub_record.annotations["comment"] = comment
+
+        for feature in sub_record.features:
+            if feature.type != "CDS" or feature.location is None:
+                continue
+            original_start = int(feature.location.start) + start
+            original_end = int(feature.location.end) + start
+            hit = hit_by_feature.get((contig, original_start, original_end))
+            if not hit:
+                continue
+            feature.qualifiers["nif_finder_gene"] = [hit["prediction"]]
+            feature.qualifiers["nif_finder_status"] = [hit["completeness"]]
+            feature.qualifiers["nif_finder_query"] = [hit["query"]]
+            if hit["operon_label"]:
+                feature.qualifiers["nif_finder_operon"] = [hit["operon_label"]]
+        region_records.append(sub_record)
+
+    if not region_records:
+        return False
+    SeqIO.write(region_records, output_gbk, "genbank")
+    print(f"Nif-encoding GenBank region saved to: {output_gbk}")
+    return True
+
+
+def write_nif_cluster_genbank(genbank_file, records, query_file, output_prefix, context_size_kb):
+    if not genbank_file:
+        return
+    if not os.path.isfile(genbank_file):
+        print(f"GenBank file not found: {genbank_file}. Skipping nif-cluster GenBank output.")
+        return
+    try:
+        features = parse_genbank_cds_features(genbank_file)
+        fasta_sequences = parse_fasta_sequences(query_file) if query_file and os.path.isfile(query_file) else None
+        matches = match_nif_hits_to_genbank(records, features, fasta_sequences)
+        if not matches:
+            print(
+                "A GenBank file was provided, but no Nif-Finder hits could be matched to CDS "
+                "protein_id, locus_tag, old_locus_tag, a unique gene qualifier, or CDS translation."
+            )
+            return
+        context_padding = context_size_kb * 1000
+        output_gbk = f"{output_prefix}_nif_encoding_region.gbk"
+        build_local_context_genbank(genbank_file, matches, context_padding, output_gbk)
+        build_overview_svg(matches, f"{output_prefix}_genome_overview.svg")
+        build_local_context_svg(matches, features, context_padding, f"{output_prefix}_local_context.svg")
+    except Exception as e:
+        print(f"Error extracting nif-cluster GenBank region from {genbank_file}: {e}")
+
+
+def find_matching_genbank(genbank_dir, base_name):
+    if not genbank_dir:
+        return None
+    for ext in (".gbk", ".gb", ".gbff", ".genbank"):
+        candidate = os.path.join(genbank_dir, f"{base_name}{ext}")
+        if os.path.isfile(candidate):
+            return candidate
+    return None
+
+
+# ============================================================
 # 散布図出力
 # 6パネル（nif遺伝子ごと）
 # 参照データ: nif該当（遺伝子色・薄め）/ other（灰色）
@@ -733,7 +1162,8 @@ def plot_scatter(all_records, references_loaded, output_png,
 # ============================================================
 
 def process_single_query(query_file, profile_files, reference_files, output_prefix,
-                         save_fasta, cpu, plot, jobs=DEFAULT_JOBS, e_value=DEFAULT_E_VALUE):
+                         save_fasta, cpu, plot, jobs=DEFAULT_JOBS, e_value=DEFAULT_E_VALUE,
+                         genbank_file=None, context_size_kb=DEFAULT_CONTEXT_SIZE_KB):
     base_name = os.path.splitext(os.path.basename(query_file))[0]
     output_prefix = output_prefix or f"{base_name}_results"
     query_lengths = get_query_lengths(query_file)
@@ -762,6 +1192,9 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
         fasta_output_file = f"{output_prefix}_nifHDKENB.faa"
         write_selected_fasta(query_file, unique_records, fasta_output_file)
 
+    if genbank_file:
+        write_nif_cluster_genbank(genbank_file, unique_records, query_file, output_prefix, context_size_kb)
+
     if plot:
         plot_png = f"{output_prefix}_scatter.png"
         plot_scatter(all_records, references_loaded, plot_png,
@@ -773,7 +1206,8 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
 # ============================================================
 
 def process_query_directory(query_dir, profile_files, reference_files, matrix_output_file,
-                            save_fasta, cpu, plot, jobs=DEFAULT_JOBS, e_value=DEFAULT_E_VALUE):
+                            save_fasta, cpu, plot, jobs=DEFAULT_JOBS, e_value=DEFAULT_E_VALUE,
+                            genbank_dir=None, context_size_kb=DEFAULT_CONTEXT_SIZE_KB):
     faa_files = sorted(glob.glob(os.path.join(query_dir, "*.faa")))
     if not faa_files:
         print(f"No .faa files found in directory: {query_dir}")
@@ -802,6 +1236,13 @@ def process_query_directory(query_dir, profile_files, reference_files, matrix_ou
                 if save_fasta:
                     fasta_output_file = os.path.join(query_dir, f"{base}_nifHDKENB.faa")
                     write_selected_fasta(faa, best, fasta_output_file)
+
+                genbank_file = find_matching_genbank(genbank_dir, base)
+                if genbank_dir and genbank_file:
+                    gbk_prefix = os.path.join(query_dir, f"{base}_results")
+                    write_nif_cluster_genbank(genbank_file, best, faa, gbk_prefix, context_size_kb)
+                elif genbank_dir:
+                    print(f"No matching GenBank file found for {base} in {genbank_dir}.")
 
                 if plot:
                     plot_png = os.path.join(query_dir, f"{base}_scatter.png")
@@ -865,7 +1306,8 @@ def translate_six_frames(genome_fasta, output_faa, min_orf_len=DEFAULT_MIN_ORF_L
 
 def process_genome_query(genome_file, profile_files, reference_files, output_prefix,
                          save_fasta, cpu, plot, min_orf_len, jobs=DEFAULT_JOBS,
-                         e_value=DEFAULT_E_VALUE):
+                         e_value=DEFAULT_E_VALUE, genbank_file=None,
+                         context_size_kb=DEFAULT_CONTEXT_SIZE_KB):
     """
     ゲノムDNA FASTAを6フレーム翻訳してからhmmscanに渡す。
     翻訳済み一時FASTAを生成後、process_single_queryと同じフローで処理する。
@@ -911,6 +1353,9 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
             fasta_output_file = f"{output_prefix}_nifHDKENB.faa"
             write_selected_fasta(tmp_faa_path, unique_records, fasta_output_file)
 
+        if genbank_file:
+            write_nif_cluster_genbank(genbank_file, unique_records, tmp_faa_path, output_prefix, context_size_kb)
+
         if plot:
             plot_png = f"{output_prefix}_scatter.png"
             plot_scatter(all_records, references_loaded, plot_png,
@@ -949,6 +1394,16 @@ def main():
     parser.add_argument("-m", "--matrix_output", default="nif_matrix.tsv",
                         help="Output file for gene status matrix (directory mode). "
                              "Default: nif_matrix.tsv")
+    parser.add_argument("--genbank",
+                        help="Path to a GenBank file for extracting the nif-encoding local region "
+                             "as an annotated .gbk file (single -q or -g mode).")
+    parser.add_argument("--genbank_dir",
+                        help="Directory containing GenBank files matching .faa basenames "
+                             "for directory mode. Supported extensions: .gbk, .gb, .gbff, .genbank.")
+    parser.add_argument("--context_size_kb", type=int, default=DEFAULT_CONTEXT_SIZE_KB,
+                        help="Size of the flanking region added to detected nif hits when extracting "
+                             f"GenBank local context. Range: 1-{MAX_CONTEXT_SIZE_KB} kb. "
+                             f"Default: {DEFAULT_CONTEXT_SIZE_KB} kb.")
     parser.add_argument("-s", "--save_fasta", action="store_true",
                         help="Save predicted NifHDKENB sequences to FASTA.")
     parser.add_argument("-p", "--plot", action="store_true",
@@ -976,6 +1431,12 @@ def main():
         parser.error("--min_orf_len must be 1 or greater.")
     if args.evalue <= 0:
         parser.error("--evalue must be greater than 0.")
+    if args.context_size_kb < 1 or args.context_size_kb > MAX_CONTEXT_SIZE_KB:
+        parser.error(f"--context_size_kb must be between 1 and {MAX_CONTEXT_SIZE_KB}.")
+    if args.genbank and args.query_dir:
+        parser.error("--genbank is for single -q or -g mode. Use --genbank_dir with -d.")
+    if args.genbank_dir and not args.query_dir:
+        parser.error("--genbank_dir can only be used with -d/--query_dir.")
 
     modes = [args.query, args.query_dir, args.genome]
     if sum(bool(m) for m in modes) > 1:
@@ -985,17 +1446,20 @@ def main():
         profile_files, reference_files = resolve_model_paths(args.profile, args.reference, parser)
         process_single_query(args.query, profile_files, reference_files,
                              args.outprefix, args.save_fasta, args.cpu, args.plot,
-                             jobs=args.jobs, e_value=args.evalue)
+                             jobs=args.jobs, e_value=args.evalue,
+                             genbank_file=args.genbank, context_size_kb=args.context_size_kb)
     elif args.query_dir:
         profile_files, reference_files = resolve_model_paths(args.profile, args.reference, parser)
         process_query_directory(args.query_dir, profile_files, reference_files,
                                 args.matrix_output, args.save_fasta, args.cpu, args.plot,
-                                jobs=args.jobs, e_value=args.evalue)
+                                jobs=args.jobs, e_value=args.evalue,
+                                genbank_dir=args.genbank_dir, context_size_kb=args.context_size_kb)
     elif args.genome:
         profile_files, reference_files = resolve_model_paths(args.profile, args.reference, parser)
         process_genome_query(args.genome, profile_files, reference_files,
                              args.outprefix, args.save_fasta, args.cpu, args.plot,
-                             args.min_orf_len, jobs=args.jobs, e_value=args.evalue)
+                             args.min_orf_len, jobs=args.jobs, e_value=args.evalue,
+                             genbank_file=args.genbank, context_size_kb=args.context_size_kb)
     else:
         parser.print_help()
         print("\nError: Please specify one of -q, -d, or -g.")
