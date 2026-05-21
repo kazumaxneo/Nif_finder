@@ -28,6 +28,8 @@ type ApiResponse = {
 };
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
+const vnfGenes = ["vnfH", "vnfD", "vnfK"];
+const targetGenes = [...nifGenes, ...vnfGenes];
 const maxJobs = 4;
 const maxCpu = 12;
 const maxContextPaddingKb = 30;
@@ -39,7 +41,8 @@ const exampleDatasets = [
 
 const figure1Caption = (
   <>
-    Figure 1. 2D Similarity Plot of homology search for the six Nif proteins encoded by <em>nifHDKENB</em> of
+    Figure 1. 2D Similarity Plot of homology search for Nif and Vnf proteins encoded by <em>nifHDKENB</em> and{" "}
+    <em>vnfHDK</em> of
     various bacterial genomes. Background reference points show the relationship between –log10(E-value) from HMMER3
     searches using <em>nif</em> HMM profiles and hit protein length across proteomes of 586 cyanobacterial strains and
     other bacterial strains. Query sequences submitted to Nif-Finder are overlaid and highlighted on this 2D Similarity
@@ -51,9 +54,9 @@ const figure1Caption = (
 
 const figure2Caption = (
   <>
-    Figure 2. Genomic locations of <em>nif</em> genes identified by Nif-Finder. Colored arrows indicate <em>nif</em>{" "}
-    genes identified by Nif-Finder, and gray arrows indicate neighboring coding sequences. Enlarged regional views show
-    local genomic neighborhoods around <em>nif</em> hits. A whole-genome view is shown when it provides additional
+    Figure 2. Genomic locations of <em>nif</em>/<em>vnf</em> genes identified by Nif-Finder. Colored arrows indicate{" "}
+    target genes identified by Nif-Finder, and gray arrows indicate neighboring coding sequences. Enlarged regional views show
+    local genomic neighborhoods around target hits. A whole-genome view is shown when it provides additional
     positional context and is omitted when redundant. Labels below highlighted arrows indicate hit status: full-length,
     fragment, or operon.
   </>
@@ -107,10 +110,10 @@ export default function Home() {
 
   const records = response?.records ?? [];
   const displayedRecords = showOnlyNifHits
-    ? records.filter((record) => nifGenes.includes(record.prediction))
+    ? records.filter((record) => targetGenes.includes(record.prediction))
     : records;
-  const nifSummary = useMemo(() => {
-    return nifGenes.map((gene) => {
+  const targetSummary = useMemo(() => {
+    return targetGenes.map((gene) => {
       const geneRecords = records.filter((record) => record.prediction === gene);
       const full = geneRecords.filter((record) => record.completeness === "Full").length;
       const operon = geneRecords.filter((record) => record.completeness === "Full_operon").length;
@@ -125,7 +128,7 @@ export default function Home() {
       };
     });
   }, [records]);
-  const totalNifCopies = nifSummary.reduce((sum, row) => sum + row.total, 0);
+  const totalTargetCopies = targetSummary.reduce((sum, row) => sum + row.total, 0);
 
   function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
@@ -378,9 +381,9 @@ export default function Home() {
       { name: "nif_finder_results.csv", data: textBytes(resultsCsv(records)) },
     ];
 
-    const nifFasta = fastaContent(records.filter((record) => nifGenes.includes(record.prediction)));
+    const nifFasta = fastaContent(records.filter((record) => targetGenes.includes(record.prediction)));
     if (nifFasta) {
-      entries.push({ name: "nif_finder_detected_nif.faa", data: textBytes(nifFasta) });
+      entries.push({ name: "nif_finder_detected_nif_vnf.faa", data: textBytes(nifFasta) });
     }
 
     const allHitFasta = fastaContent(records);
@@ -522,8 +525,9 @@ export default function Home() {
         <div className="brand">
           <div className="brand-copy">
             <p>
-              Web tool for detecting and classifying nitrogen fixation (<em>nif</em>) genes, including <em>nifH</em>,{" "}
-              <em>nifD</em>, <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, and <em>nifB</em>, from protein or genome FASTA
+              Web tool for detecting and classifying nitrogen fixation (<em>nif</em>/<em>vnf</em>) genes, including{" "}
+              <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>,{" "}
+              <em>vnfH</em>, <em>vnfD</em>, and <em>vnfK</em>, from protein or genome FASTA
               using HMMER3 hmmscan and nearest-neighbour (1-NN) classification on homology and protein length plots.
             </p>
             <div className="brand-citation">
@@ -631,7 +635,7 @@ export default function Home() {
               />
             </label>
             <label className="context-padding-field">
-              Size of the nif-encoding region to be visualized (kb)
+              Size of the nif/vnf-encoding region to be visualized (kb)
               <input
                 type="number"
                 min={1}
@@ -656,7 +660,7 @@ export default function Home() {
                 checked={showOnlyNifHits}
                 onChange={(event) => setShowOnlyNifHits(event.target.checked)}
               />
-              Show only nif hits
+              Show only nif/vnf hits
             </label>
           </div>
         </div>
@@ -676,7 +680,7 @@ export default function Home() {
       {activeTab === "run" ? (
       <section className="results">
         <div className="summary-row">
-          <div className="counter">{totalNifCopies} nif copies identified</div>
+          <div className="counter">{totalTargetCopies} nif/vnf copies identified</div>
         </div>
 
         {response?.error ? (
@@ -695,7 +699,7 @@ export default function Home() {
           <>
             <div className="summary-table-wrap">
               <p className="table-caption">
-                Table 1. Summary of <em>nif</em> genes identified by Nif-Finder.
+                Table 1. Summary of <em>nif</em>/<em>vnf</em> genes identified by Nif-Finder.
               </p>
               <table className="summary-table">
                 <thead>
@@ -708,7 +712,7 @@ export default function Home() {
                   </tr>
                 </thead>
                 <tbody>
-                  {nifSummary.map((row) => (
+                  {targetSummary.map((row) => (
                     <tr key={row.gene}>
                       <th scope="row">{row.gene}</th>
                       <td>{row.total}</td>
@@ -781,7 +785,7 @@ export default function Home() {
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextOverviewSvg)}
-                      alt="Whole genome view of matched nif gene locations"
+                      alt="Whole genome view of matched nif/vnf gene locations"
                     />
                   </div>
                 ) : null}
@@ -791,7 +795,7 @@ export default function Home() {
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextLocalSvg)}
-                      alt="Enlarged genomic view around matched nif hits"
+                      alt="Enlarged genomic view around matched nif/vnf hits"
                     />
                   </div>
                 ) : null}
@@ -806,7 +810,7 @@ export default function Home() {
               {response?.genomicContextGenbank ? (
                 <button className="ghost-button" type="button" onClick={downloadLocalContextGenbank}>
                   <Download size={16} aria-hidden />
-                  Download nif-encoding region (gbk)
+                  Download nif/vnf-encoding region (gbk)
                 </button>
               ) : null}
               <button className="ghost-button" type="button" onClick={downloadZip} disabled={records.length === 0}>
@@ -817,7 +821,7 @@ export default function Home() {
           </>
         ) : (
           <div className="empty-state">
-            Submit a protein FASTA file to view predicted nif hits, completeness calls, and scatter plot output.
+            Submit a protein FASTA file to view predicted nif/vnf hits, completeness calls, and scatter plot output.
           </div>
         )}
 
@@ -848,7 +852,8 @@ export default function Home() {
               <h2>Manual</h2>
               <p>
                 Nif-Finder detects and classifies nitrogen fixation genes, including <em>nifH</em>, <em>nifD</em>,{" "}
-                <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, and <em>nifB</em>, from protein FASTA input. It uses
+                <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>, <em>vnfH</em>, <em>vnfD</em>, and{" "}
+                <em>vnfK</em>, from protein FASTA input. It uses
                 HMMER3 hmmscan and nearest-neighbour classification on homology and protein length plots.
               </p>
 
@@ -865,8 +870,8 @@ export default function Home() {
 
               <h3>2. Upload GenBank for genome position plots (optional)</h3>
               <p>
-                When a full GenBank file is provided, Nif-Finder shows where the detected <em>nif</em> genes are located
-                on the genome. This is useful for checking gene order, fragmented genes, and neighbouring coding
+                When a full GenBank file is provided, Nif-Finder shows where the detected <em>nif</em>/<em>vnf</em>{" "}
+                genes are located on the genome. This is useful for checking gene order, fragmented genes, and neighbouring coding
                 sequences. The GenBank upload limit is 30 MB.
               </p>
 
@@ -885,39 +890,40 @@ export default function Home() {
               <p>
                 Press Run analysis to start the analysis. A run usually takes 1 to 5 minutes. Results include the query
                 identifier, -log10(E-value), alignment length, query protein length, predicted gene, and completeness
-                status. Nif hits are labelled as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result
-                tables, detected nif FASTA sequences, the scatter plot, any genome context figures generated from the
+                status. Nif/Vnf hits are labelled as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result
+                tables, detected nif/vnf FASTA sequences, the scatter plot, any genome context figures generated from the
                 optional GenBank input, and an annotated GenBank file for the visualized local context region when
                 available.
               </p>
 
               <h2 className="manual-section-break">Result</h2>
 
-              <h3>1. The scatter plot of the nif and nif homologues</h3>
+              <h3>1. The scatter plot of the nif/vnf and related homologues</h3>
               <p>
-                The scatter plot summarizes homology search results for the six target <em>nif</em> proteins. Each panel
+                The scatter plot summarizes homology search results for target <em>nif</em>/<em>vnf</em> proteins. Each panel
                 corresponds to one protein: <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>,{" "}
-                <em>nifN</em>, or <em>nifB</em>. The x-axis shows protein length in amino acids, and the y-axis shows
+                <em>nifN</em>, or <em>nifB</em>, with <em>vnfH</em>, <em>vnfD</em>, and <em>vnfK</em> shown on their
+                corresponding H, D, and K panels. The x-axis shows protein length in amino acids, and the y-axis shows
                 -log10(E-value), so points higher on the plot represent stronger matches. Full-length hits of the target
-                <em>nif</em> protein are plotted in and around the dashed circle. Circle plots represent hits from
+                proteins are plotted in and around the dashed circle. Circle plots represent hits from
                 complete genomes, and triangle plots represent hits from draft genomes. Partial-length points outside
-                the full-length region may indicate fragmented <em>nif</em> genes, especially in draft assemblies.
+                the full-length region may indicate fragmented <em>nif</em>/<em>vnf</em> genes, especially in draft assemblies.
                 Double dashed circles show the <em>nifEN</em> operon.
               </p>
               <figure className="manual-figure manual-figure-wide">
                 <img src="/manual-scatter-results.jpg" alt="Annotated Nif-Finder scatter plot result explanation" />
               </figure>
 
-              <h3>2. Visualization of the nif-encoding region</h3>
+              <h3>2. Visualization of the nif/vnf-encoding region</h3>
               <p>
                 When a GenBank file is provided, Nif-Finder draws genome position plots for detected{" "}
-                <em>nifHDKENB</em> genes. The overview plot shows where the <em>nif</em> region is encoded on the full
-                sequence, and the local plot shows a pinpoint view of the <em>nif</em>-encoding region. Colored arrows
-                show detected <em>nif</em> genes, and gray arrows show other ORFs based on the user-provided GenBank
-                file. The labels below <em>nif</em> genes show whether each <em>nif</em> hit is full-length, fragmented,
+                <em>nifHDKENB</em> and <em>vnfHDK</em> genes. The overview plot shows where the target region is encoded on the full
+                sequence, and the local plot shows a pinpoint view of the <em>nif</em>/<em>vnf</em>-encoding region. Colored arrows
+                show detected <em>nif</em>/<em>vnf</em> genes, and gray arrows show other ORFs based on the user-provided GenBank
+                file. The labels below target genes show whether each hit is full-length, fragmented,
                 or part of an operon. In the pinpoint view, positions are recalculated from the left edge of the
                 enlarged region, with the upstream end set to +1. These plots are useful for checking probable{" "}
-                <em>nif</em>-cluster regions and for <em>nif</em>-cluster comparison using clinker.
+                <em>nif</em>/<em>vnf</em>-cluster regions and for cluster comparison using clinker.
               </p>
               <figure className="manual-figure manual-figure-wide">
                 <img src="/manual-genome-context-results.jpg" alt="Nif-Finder genome position and local context result" />

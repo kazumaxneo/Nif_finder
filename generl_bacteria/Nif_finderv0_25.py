@@ -44,6 +44,15 @@ from xml.sax.saxutils import escape
 #      注釈付きGBK、whole-genome overview SVG、local context SVGを出力
 
 NIF_GENES = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"]
+VNF_GENES = ["vnfH", "vnfD", "vnfK"]
+TARGET_GENES = NIF_GENES + VNF_GENES
+PANEL_GENES = NIF_GENES
+GENE_PANEL_MAP = {
+    "vnfH": "nifH",
+    "vnfD": "nifD",
+    "vnfK": "nifK",
+}
+TARGET_GENE_BY_LOWER = {gene.lower(): gene for gene in TARGET_GENES}
 NIF_FINDER_DB_ENV = "NIF_FINDER_DB"
 DEFAULT_PROFILE_NAME = "proteins_hmm"
 DEFAULT_REFERENCE_SUFFIX = "classification"
@@ -64,7 +73,10 @@ NIF_GENE_THRESHOLDS = {
     "nifK": 410,
     "nifE": 400,
     "nifN": 400,
-    "nifB": 370
+    "nifB": 370,
+    "vnfH": 240,
+    "vnfD": 370,
+    "vnfK": 410
 }
 
 NIF_GENE_COLORS = {
@@ -73,7 +85,10 @@ NIF_GENE_COLORS = {
     "nifK": "#2ECC71",
     "nifE": "#F39C12",
     "nifN": "#9B59B6",
-    "nifB": "#1ABC9C"
+    "nifB": "#1ABC9C",
+    "vnfH": "#C0392B",
+    "vnfD": "#1F77B4",
+    "vnfK": "#1E8449"
 }
 
 # z-score正規化後の1-NN距離がこの閾値を超えた場合、"unclassifiable"と判定
@@ -81,6 +96,11 @@ NIF_GENE_COLORS = {
 # 値はz-score空間でのユークリッド距離。参照データの広がりに応じて調整可能。
 # デフォルト 2.0: nifENとnifDK参照クラスタ間の距離が概ね3〜5 z-score程度を想定。
 NN_DISTANCE_THRESHOLD = 2.0
+
+
+def normalize_prediction_attribute(attribute):
+    value = (attribute or "").strip()
+    return TARGET_GENE_BY_LOWER.get(value.lower(), value)
 
 
 # ============================================================
@@ -186,7 +206,7 @@ def load_reference_data(reference_file):
                     alignment_length = int(row["length"])
                     e_value = float(row["Evalue"])
                     log_e_value = -math.log10(e_value) if e_value > 0 else DEFAULT_LOG_E_VALUE_MIN
-                    attribute = row["attribute"]
+                    attribute = normalize_prediction_attribute(row["attribute"])
                     reference_data.append({"x": alignment_length, "y": log_e_value, "attribute": attribute})
                 except (ValueError, KeyError) as e:
                     print(f"Skipping malformed row in {reference_file}: {row}. Error: {e}")
@@ -393,10 +413,14 @@ def select_best_records(all_records):
 # ============================================================
 
 def build_operon_label(genes):
-    ordered_genes = [gene for gene in NIF_GENES if gene in genes]
+    ordered_genes = [gene for gene in TARGET_GENES if gene in genes]
     if not ordered_genes:
         return ""
-    return "nif" + "".join(gene.replace("nif", "") for gene in ordered_genes)
+    prefixes = {gene[:3] for gene in ordered_genes}
+    if len(prefixes) == 1:
+        prefix = ordered_genes[0][:3]
+        return prefix + "".join(gene[3:] for gene in ordered_genes)
+    return "+".join(ordered_genes)
 
 
 def is_operon_length(query_full_length, full_genes):
@@ -464,7 +488,7 @@ def apply_operon_status(best_records, operon_queries, operon_gene_map=None):
 # ============================================================
 
 def get_gene_status_matrix(records):
-    status_sets = {gene: set() for gene in NIF_GENES}
+    status_sets = {gene: set() for gene in TARGET_GENES}
     status_order = ["Full_operon", "Full", "Fragment", "unclassifiable"]
     for r in records.values():
         pred = r["prediction"]
@@ -473,14 +497,14 @@ def get_gene_status_matrix(records):
             status_sets[pred].add(gene_status)
     return {
         gene: "+".join(s for s in status_order if s in status_sets[gene]) or "N/A"
-        for gene in NIF_GENES
+        for gene in TARGET_GENES
     }
 
 
 def write_selected_fasta(fasta_file, records, output_fasta):
-    selected_map = {r["query_name"]: r["prediction"] for r in records.values() if r["prediction"] in NIF_GENES}
+    selected_map = {r["query_name"]: r["prediction"] for r in records.values() if r["prediction"] in TARGET_GENES}
     if not selected_map:
-        print(f"No Nif genes found in {os.path.basename(fasta_file)}. Skipping FASTA output.")
+        print(f"No nif/vnf genes found in {os.path.basename(fasta_file)}. Skipping FASTA output.")
         return
     try:
         with open(output_fasta, "w") as out:
@@ -516,7 +540,7 @@ def query_identifier_candidates(query):
     seen = set()
     candidates = []
     for piece in pieces:
-        if piece and piece not in seen and piece not in NIF_GENES:
+        if piece and piece not in seen and piece not in TARGET_GENES:
             candidates.append(piece)
             seen.add(piece)
     return candidates
@@ -609,12 +633,12 @@ def match_nif_hits_to_genbank(records, features, fasta_sequences=None):
     prediction_counts = {}
     for record in record_list:
         prediction = str(record.get("prediction") or "")
-        if prediction in NIF_GENES:
+        if prediction in TARGET_GENES:
             prediction_counts[prediction] = prediction_counts.get(prediction, 0) + 1
 
     for record in record_list:
         prediction = str(record.get("prediction") or "")
-        if prediction not in NIF_GENES:
+        if prediction not in TARGET_GENES:
             continue
         query = str(record.get("query_name") or record.get("query") or "")
         candidates = query_identifier_candidates(query)
@@ -773,7 +797,7 @@ def build_overview_svg(matches, output_svg):
             feature = match["feature"]
             x1 = x_start + feature["start"] * scale
             x2 = x_start + feature["end"] * scale
-            label = match["prediction"].replace("nif", "")
+            label = match["prediction"][3:] if match["prediction"].startswith(("nif", "vnf")) else match["prediction"]
             color = NIF_GENE_COLORS.get(match["prediction"], "#0f766e")
             body.append(svg_arrow(x1, x2, y, feature["strand"], color, label))
     write_svg(output_svg, width, height, "\n".join(body))
@@ -988,7 +1012,7 @@ def plot_scatter(all_records, references_loaded, output_png,
 
     # gene_hits[gene] = list of (record, display_status)
     # display_status: "Full" / "Fragment" / "Full_operon" / "N/A"
-    gene_hits = {gene: [] for gene in NIF_GENES}
+    gene_hits = {gene: [] for gene in PANEL_GENES}
     unclassifiable_hits = []
 
     # Full_operonクエリの代表レコードを遺伝子ごとに収集
@@ -1010,8 +1034,9 @@ def plot_scatter(all_records, references_loaded, output_png,
     # Full_operon★を構成遺伝子パネルに追加
     for qname, gene_rec_map in operon_records.items():
         for gene, rec in gene_rec_map.items():
-            if gene in gene_hits:
-                gene_hits[gene].append((rec, "Full_operon"))
+            panel_gene = GENE_PANEL_MAP.get(gene, gene)
+            if panel_gene in gene_hits:
+                gene_hits[panel_gene].append((rec, "Full_operon"))
 
     # 通常クエリ（非operon）の振り分け
     for r in all_records:
@@ -1028,24 +1053,25 @@ def plot_scatter(all_records, references_loaded, output_png,
         if qname in operon_queries:
             continue
 
-        if pred not in gene_hits:
+        panel_gene = GENE_PANEL_MAP.get(pred, pred)
+        if panel_gene not in gene_hits:
             continue
 
-        gene_hits[pred].append((r, status))
+        gene_hits[panel_gene].append((r, status))
 
     # ------------------------------------------------------------------
     # 参照データをパネルごとに振り分け
     # ------------------------------------------------------------------
-    ref_by_gene = {gene: {"nif": [], "other": []} for gene in NIF_GENES}
+    ref_by_gene = {gene: {"target": [], "other": []} for gene in PANEL_GENES}
     for i, (ref_data, _scale) in enumerate(references_loaded):
-        if i < len(NIF_GENES):
-            panel_gene = NIF_GENES[i]
+        if i < len(PANEL_GENES):
+            panel_gene = PANEL_GENES[i]
         else:
             continue
         for ref in ref_data:
             attr = ref["attribute"]
-            if attr == panel_gene:
-                ref_by_gene[panel_gene]["nif"].append(ref)
+            if GENE_PANEL_MAP.get(attr, attr) == panel_gene and attr in TARGET_GENES:
+                ref_by_gene[panel_gene]["target"].append(ref)
             else:
                 ref_by_gene[panel_gene]["other"].append(ref)
 
@@ -1058,7 +1084,7 @@ def plot_scatter(all_records, references_loaded, output_png,
         "unclassifiable":  ("D",  60, "gray",  1.0),
     }
 
-    for idx, gene in enumerate(NIF_GENES):
+    for idx, gene in enumerate(PANEL_GENES):
         ax = axes[idx]
         color       = NIF_GENE_COLORS[gene]
         color_light = _lighten_hex(color, factor=0.60)
@@ -1073,12 +1099,12 @@ def plot_scatter(all_records, references_loaded, output_png,
             ax.scatter(ox, oy, c=color_other, s=14, alpha=0.40,
                        zorder=1, label="Ref: other")
 
-        # 参照 nif（同系色・薄め）
-        if refs["nif"]:
-            nx = [r["x"] for r in refs["nif"]]
-            ny = [r["y"] for r in refs["nif"]]
+        # 参照 target（同系色・薄め）
+        if refs["target"]:
+            nx = [r["x"] for r in refs["target"]]
+            ny = [r["y"] for r in refs["target"]]
             ax.scatter(nx, ny, c=color_light, s=20, alpha=0.60,
-                       zorder=2, label=f"Ref: {gene}")
+                       zorder=2, label=f"Ref: {gene}/vnf")
 
         # クエリヒット（X軸: タンパク質長）
         hits_by_status = {}
@@ -1135,7 +1161,7 @@ def plot_scatter(all_records, references_loaded, output_png,
         mlines.Line2D([0], [0], marker='o', color='w', markerfacecolor='#CCCCCC',
                       markeredgecolor='#AAAAAA', markersize=7, label='Ref: other'),
         mlines.Line2D([0], [0], marker='o', color='w', markerfacecolor=rep_color_light,
-                      markeredgecolor=rep_color_light, markersize=7, label='Ref: nif'),
+                      markeredgecolor=rep_color_light, markersize=7, label='Ref: target'),
         mlines.Line2D([0], [0], marker='o', color='w', markerfacecolor=rep_color,
                       markersize=7, label='Query: Full'),
         mlines.Line2D([0], [0], marker='^', color='w', markerfacecolor=rep_color,
@@ -1150,7 +1176,7 @@ def plot_scatter(all_records, references_loaded, output_png,
     fig.legend(handles=legend_elements, loc="lower center", ncol=7,
                fontsize=9, framealpha=0.9, bbox_to_anchor=(0.5, 0.01))
 
-    plt.suptitle("Nif Gene HMMscan Results", fontsize=15, fontweight="bold", y=1.01)
+    plt.suptitle("Nif/Vnf Gene HMMscan Results", fontsize=15, fontweight="bold", y=1.01)
     plt.tight_layout(rect=[0, 0.06, 1, 1])
 
     try:
@@ -1193,7 +1219,7 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
         print(f"Error writing summary output to {output_summary_file}: {e}")
 
     if save_fasta:
-        fasta_output_file = f"{output_prefix}_nifHDKENB.faa"
+        fasta_output_file = f"{output_prefix}_nifHDKENB_vnfHDK.faa"
         write_selected_fasta(query_file, unique_records, fasta_output_file)
 
     if genbank_file:
@@ -1221,7 +1247,7 @@ def process_query_directory(query_dir, profile_files, reference_files, matrix_ou
 
     try:
         with open(matrix_output_file, "w") as out:
-            out.write("Genome\t" + "\t".join(NIF_GENES) + "\n")
+            out.write("Genome\t" + "\t".join(TARGET_GENES) + "\n")
             for faa in faa_files:
                 genome_name = os.path.basename(faa)
                 base = os.path.splitext(genome_name)[0]
@@ -1235,10 +1261,10 @@ def process_query_directory(query_dir, profile_files, reference_files, matrix_ou
                 best = apply_operon_status(best, operon_queries, operon_gene_map)
 
                 row = get_gene_status_matrix(best)
-                out.write(f"{genome_name}\t" + "\t".join(row[g] for g in NIF_GENES) + "\n")
+                out.write(f"{genome_name}\t" + "\t".join(row[g] for g in TARGET_GENES) + "\n")
 
                 if save_fasta:
-                    fasta_output_file = os.path.join(query_dir, f"{base}_nifHDKENB.faa")
+                    fasta_output_file = os.path.join(query_dir, f"{base}_nifHDKENB_vnfHDK.faa")
                     write_selected_fasta(faa, best, fasta_output_file)
 
                 genbank_file = find_matching_genbank(genbank_dir, base)
@@ -1354,7 +1380,7 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
 
         if save_fasta:
             # -s の場合は翻訳済み配列（ORF）を保存
-            fasta_output_file = f"{output_prefix}_nifHDKENB.faa"
+            fasta_output_file = f"{output_prefix}_nifHDKENB_vnfHDK.faa"
             write_selected_fasta(tmp_faa_path, unique_records, fasta_output_file)
 
         if genbank_file:
@@ -1376,7 +1402,7 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Nif Finder: Identifies Nif genes in protein sequences using HMMscan."
+        description="Nif Finder: Identifies nif and vnf genes in protein sequences using HMMscan."
     )
     parser.add_argument("-q", "--query",
                         help="Path to a single protein FASTA file.")
@@ -1399,7 +1425,7 @@ def main():
                         help="Output file for gene status matrix (directory mode). "
                              "Default: nif_matrix.tsv")
     parser.add_argument("--genbank",
-                        help="Path to a GenBank file for extracting the nif-encoding local region "
+                        help="Path to a GenBank file for extracting the nif/vnf-encoding local region "
                              "as an annotated .gbk file (single -q or -g mode).")
     parser.add_argument("--genbank_dir",
                         help="Directory containing GenBank files matching .faa basenames "
@@ -1409,7 +1435,7 @@ def main():
                              f"GenBank local context. Range: 1-{MAX_CONTEXT_SIZE_KB} kb. "
                              f"Default: {DEFAULT_CONTEXT_SIZE_KB} kb.")
     parser.add_argument("-s", "--save_fasta", action="store_true",
-                        help="Save predicted NifHDKENB sequences to FASTA.")
+                        help="Save predicted nifHDKENB and vnfHDK sequences to FASTA.")
     parser.add_argument("-p", "--plot", action="store_true",
                         help="Save scatter plot PNG (alignment_length vs -log10(Evalue)). "
                              "6 panels by gene; reference data in gray, "

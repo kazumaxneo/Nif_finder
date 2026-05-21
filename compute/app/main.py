@@ -31,6 +31,8 @@ QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "240"))
 NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
 TOKEN_MAX_AGE_SECONDS = int(os.environ.get("TOKEN_MAX_AGE_SECONDS", "600"))
 NIF_GENES = {"nifH", "nifD", "nifK", "nifE", "nifN", "nifB"}
+VNF_GENES = {"vnfH", "vnfD", "vnfK"}
+TARGET_GENES = NIF_GENES | VNF_GENES
 GENE_COLORS = {
     "nifH": "#E74C3C",
     "nifD": "#3498DB",
@@ -38,6 +40,9 @@ GENE_COLORS = {
     "nifE": "#F39C12",
     "nifN": "#9B59B6",
     "nifB": "#1ABC9C",
+    "vnfH": "#C0392B",
+    "vnfD": "#1F77B4",
+    "vnfK": "#1E8449",
 }
 LOCAL_CONTEXT_PADDING = int(os.environ.get("LOCAL_CONTEXT_PADDING", "10000"))
 LOCAL_CONTEXT_MERGE_DISTANCE = int(os.environ.get("LOCAL_CONTEXT_MERGE_DISTANCE", "20000"))
@@ -181,7 +186,7 @@ def query_identifier_candidates(query: str) -> list[str]:
     seen: set[str] = set()
     candidates: list[str] = []
     for piece in pieces:
-        if piece and piece not in seen and piece not in NIF_GENES:
+        if piece and piece not in seen and piece not in TARGET_GENES:
             candidates.append(piece)
             seen.add(piece)
     return candidates
@@ -282,12 +287,12 @@ def match_nif_hits_to_genbank(
     prediction_counts: dict[str, int] = {}
     for record in records:
         prediction = str(record.get("prediction") or "")
-        if prediction in NIF_GENES:
+        if prediction in TARGET_GENES:
             prediction_counts[prediction] = prediction_counts.get(prediction, 0) + 1
 
     for record in records:
         prediction = str(record.get("prediction") or "")
-        if prediction not in NIF_GENES:
+        if prediction not in TARGET_GENES:
             continue
         query = str(record.get("query") or "")
         candidates = query_identifier_candidates(query)
@@ -383,8 +388,8 @@ def hit_label(hit: MatchedHit) -> str:
 
 def overview_hit_label(hit: MatchedHit) -> str:
     label = hit_label(hit)
-    if label.startswith("nif"):
-        return label.replace("nif", "")
+    if label.startswith(("nif", "vnf")):
+        return label[3:]
     return label
 
 
