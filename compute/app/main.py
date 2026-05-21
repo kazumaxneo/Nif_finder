@@ -31,7 +31,7 @@ QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "240"))
 NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
 TOKEN_MAX_AGE_SECONDS = int(os.environ.get("TOKEN_MAX_AGE_SECONDS", "600"))
 NIF_GENES = {"nifH", "nifD", "nifK", "nifE", "nifN", "nifB"}
-VNF_GENES = {"vnfH", "vnfD", "vnfK"}
+VNF_GENES = {"vnfD", "vnfK"}
 TARGET_GENES = NIF_GENES | VNF_GENES
 GENE_COLORS = {
     "nifH": "#E74C3C",
@@ -40,7 +40,6 @@ GENE_COLORS = {
     "nifE": "#F39C12",
     "nifN": "#9B59B6",
     "nifB": "#1ABC9C",
-    "vnfH": "#C0392B",
     "vnfD": "#1F77B4",
     "vnfK": "#1E8449",
 }

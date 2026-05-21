@@ -8,7 +8,7 @@ from collections import defaultdict
 
 # ターゲット遺伝子
 NIF_GENES = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"]
-VNF_GENES = ["vnfH", "vnfD", "vnfK"]
+VNF_GENES = ["vnfD", "vnfK"]
 STATUSES = ["Full", "Full_operon", "Fragment"]
 
 # 出力ファイル

@@ -28,7 +28,7 @@ type ApiResponse = {
 };
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
-const vnfGenes = ["vnfH", "vnfD", "vnfK"];
+const vnfGenes = ["vnfD", "vnfK"];
 const targetGenes = [...nifGenes, ...vnfGenes];
 const maxJobs = 4;
 const maxCpu = 12;
@@ -41,8 +41,8 @@ const exampleDatasets = [
 
 const figure1Caption = (
   <>
-    Figure 1. 2D Similarity Plot of homology search for Nif and Vnf proteins encoded by <em>nifHDKENB</em> and{" "}
-    <em>vnfHDK</em> of
+    Figure 1. 2D Similarity Plot of homology search for Nif proteins encoded by <em>nifHDKENB</em> and currently
+    supported VnfD/VnfK proteins of
     various bacterial genomes. Background reference points show the relationship between –log10(E-value) from HMMER3
     searches using <em>nif</em> HMM profiles and hit protein length across proteomes of 586 cyanobacterial strains and
     other bacterial strains. Query sequences submitted to Nif-Finder are overlaid and highlighted on this 2D Similarity
@@ -527,7 +527,7 @@ export default function Home() {
             <p>
               Web tool for detecting and classifying nitrogen fixation (<em>nif</em>/<em>vnf</em>) genes, including{" "}
               <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>,{" "}
-              <em>vnfH</em>, <em>vnfD</em>, and <em>vnfK</em>, from protein or genome FASTA
+              <em>vnfD</em>, and <em>vnfK</em>, from protein or genome FASTA
               using HMMER3 hmmscan and nearest-neighbour (1-NN) classification on homology and protein length plots.
             </p>
             <div className="brand-citation">
@@ -852,8 +852,8 @@ export default function Home() {
               <h2>Manual</h2>
               <p>
                 Nif-Finder detects and classifies nitrogen fixation genes, including <em>nifH</em>, <em>nifD</em>,{" "}
-                <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>, <em>vnfH</em>, <em>vnfD</em>, and{" "}
-                <em>vnfK</em>, from protein FASTA input. It uses
+                <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>, <em>vnfD</em>, and <em>vnfK</em>, from
+                protein FASTA input. It uses
                 HMMER3 hmmscan and nearest-neighbour classification on homology and protein length plots.
               </p>
 
@@ -902,8 +902,8 @@ export default function Home() {
               <p>
                 The scatter plot summarizes homology search results for target <em>nif</em>/<em>vnf</em> proteins. Each panel
                 corresponds to one protein: <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>,{" "}
-                <em>nifN</em>, or <em>nifB</em>, with <em>vnfH</em>, <em>vnfD</em>, and <em>vnfK</em> shown on their
-                corresponding H, D, and K panels. The x-axis shows protein length in amino acids, and the y-axis shows
+                <em>nifN</em>, or <em>nifB</em>, with <em>vnfD</em> and <em>vnfK</em> shown on their corresponding D
+                and K panels. The x-axis shows protein length in amino acids, and the y-axis shows
                 -log10(E-value), so points higher on the plot represent stronger matches. Full-length hits of the target
                 proteins are plotted in and around the dashed circle. Circle plots represent hits from
                 complete genomes, and triangle plots represent hits from draft genomes. Partial-length points outside
@@ -917,7 +917,7 @@ export default function Home() {
               <h3>2. Visualization of the nif/vnf-encoding region</h3>
               <p>
                 When a GenBank file is provided, Nif-Finder draws genome position plots for detected{" "}
-                <em>nifHDKENB</em> and <em>vnfHDK</em> genes. The overview plot shows where the target region is encoded on the full
+                <em>nifHDKENB</em> and currently supported <em>vnfD</em>/<em>vnfK</em> genes. The overview plot shows where the target region is encoded on the full
                 sequence, and the local plot shows a pinpoint view of the <em>nif</em>/<em>vnf</em>-encoding region. Colored arrows
                 show detected <em>nif</em>/<em>vnf</em> genes, and gray arrows show other ORFs based on the user-provided GenBank
                 file. The labels below target genes show whether each hit is full-length, fragmented,

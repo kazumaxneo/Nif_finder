@@ -44,11 +44,10 @@ from xml.sax.saxutils import escape
 #      注釈付きGBK、whole-genome overview SVG、local context SVGを出力
 
 NIF_GENES = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"]
-VNF_GENES = ["vnfH", "vnfD", "vnfK"]
+VNF_GENES = ["vnfD", "vnfK"]
 TARGET_GENES = NIF_GENES + VNF_GENES
 PANEL_GENES = NIF_GENES
 GENE_PANEL_MAP = {
-    "vnfH": "nifH",
     "vnfD": "nifD",
     "vnfK": "nifK",
 }
@@ -74,7 +73,6 @@ NIF_GENE_THRESHOLDS = {
     "nifE": 400,
     "nifN": 400,
     "nifB": 370,
-    "vnfH": 240,
     "vnfD": 370,
     "vnfK": 410
 }
@@ -86,7 +84,6 @@ NIF_GENE_COLORS = {
     "nifE": "#F39C12",
     "nifN": "#9B59B6",
     "nifB": "#1ABC9C",
-    "vnfH": "#C0392B",
     "vnfD": "#1F77B4",
     "vnfK": "#1E8449"
 }
@@ -1219,7 +1216,7 @@ def process_single_query(query_file, profile_files, reference_files, output_pref
         print(f"Error writing summary output to {output_summary_file}: {e}")
 
     if save_fasta:
-        fasta_output_file = f"{output_prefix}_nifHDKENB_vnfHDK.faa"
+        fasta_output_file = f"{output_prefix}_nifHDKENB_vnfDK.faa"
         write_selected_fasta(query_file, unique_records, fasta_output_file)
 
     if genbank_file:
@@ -1264,7 +1261,7 @@ def process_query_directory(query_dir, profile_files, reference_files, matrix_ou
                 out.write(f"{genome_name}\t" + "\t".join(row[g] for g in TARGET_GENES) + "\n")
 
                 if save_fasta:
-                    fasta_output_file = os.path.join(query_dir, f"{base}_nifHDKENB_vnfHDK.faa")
+                    fasta_output_file = os.path.join(query_dir, f"{base}_nifHDKENB_vnfDK.faa")
                     write_selected_fasta(faa, best, fasta_output_file)
 
                 genbank_file = find_matching_genbank(genbank_dir, base)
@@ -1380,7 +1377,7 @@ def process_genome_query(genome_file, profile_files, reference_files, output_pre
 
         if save_fasta:
             # -s の場合は翻訳済み配列（ORF）を保存
-            fasta_output_file = f"{output_prefix}_nifHDKENB_vnfHDK.faa"
+            fasta_output_file = f"{output_prefix}_nifHDKENB_vnfDK.faa"
             write_selected_fasta(tmp_faa_path, unique_records, fasta_output_file)
 
         if genbank_file:
@@ -1435,7 +1432,7 @@ def main():
                              f"GenBank local context. Range: 1-{MAX_CONTEXT_SIZE_KB} kb. "
                              f"Default: {DEFAULT_CONTEXT_SIZE_KB} kb.")
     parser.add_argument("-s", "--save_fasta", action="store_true",
-                        help="Save predicted nifHDKENB and vnfHDK sequences to FASTA.")
+                        help="Save predicted nifHDKENB and currently supported vnfD/vnfK sequences to FASTA.")
     parser.add_argument("-p", "--plot", action="store_true",
                         help="Save scatter plot PNG (alignment_length vs -log10(Evalue)). "
                              "6 panels by gene; reference data in gray, "
