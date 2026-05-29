@@ -20,6 +20,8 @@ type ApiResponse = {
   genomicContextLocalSvg?: string | null;
   genomicContextGenbank?: string | null;
   genomicContextGenbankFilename?: string | null;
+  vnfContextGenbank?: string | null;
+  vnfContextGenbankFilename?: string | null;
   genomicContextMessage?: string | null;
   error?: string;
   setup?: string;
@@ -28,8 +30,37 @@ type ApiResponse = {
 };
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
-const vnfGenes = ["vnfD", "vnfK"];
-const targetGenes = [...nifGenes, ...vnfGenes];
+const vnfGenes = ["vnfH/nifH", "vnfD", "vnfK", "vnfE/nifE", "vnfN/nifN", "vnfG", "vnfDG"];
+const accessoryGenes = [
+  "nifZ", "nifX", "nifP/cysE", "nifT", "nifV", "nifS", "nifU", "nifU_like",
+  "modB/vupB", "modC/vupC", "modAlike", "vupA/modA", "vupB/modB",
+  "vupC/modC", "cnfR/patB", "cnfR/patB_like",
+];
+const targetGenes = [...nifGenes, ...vnfGenes, ...accessoryGenes];
+const coreModelGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
+const additionalModelGenes = [
+  { id: "vnfH", label: "vnfH" },
+  { id: "vnfD", label: "vnfD" },
+  { id: "vnfK", label: "vnfK" },
+  { id: "vnfE", label: "vnfE" },
+  { id: "vnfN", label: "vnfN" },
+  { id: "vnfG", label: "vnfG/vnfDG" },
+  { id: "nifZ", label: "nifZ" },
+  { id: "nifX", label: "nifX" },
+  { id: "nifP", label: "nifP/cysE" },
+  { id: "nifT", label: "nifT" },
+  { id: "nifV", label: "nifV" },
+  { id: "nifS", label: "nifS" },
+  { id: "nifU", label: "nifU" },
+  { id: "modA", label: "modA" },
+  { id: "modB", label: "modB/vupB" },
+  { id: "modC", label: "modC/vupC" },
+  { id: "vupA", label: "vupA/modA" },
+  { id: "vupB", label: "vupB/modB" },
+  { id: "vupC", label: "vupC/modC" },
+  { id: "cnfR-patB", label: "cnfR/patB" },
+];
+const defaultAdditionalModelGenes = additionalModelGenes.map((gene) => gene.id);
 const maxJobs = 4;
 const maxCpu = 12;
 const maxContextPaddingKb = 30;
@@ -41,12 +72,12 @@ const exampleDatasets = [
 
 const figure1Caption = (
   <>
-    Figure 1. 2D Similarity Plot of homology search for Nif proteins encoded by <em>nifHDKENB</em> and currently
-    supported VnfD/VnfK proteins of
+    Figure 1. 2D Similarity Plot of homology search for Nif proteins encoded by <em>nifHDKENB</em>, supported
+    VnfD/VnfG/VnfK/VnfDG proteins, and related targets of
     various bacterial genomes. Background reference points show the relationship between –log10(E-value) from HMMER3
     searches using <em>nif</em> HMM profiles and hit protein length across proteomes of 586 cyanobacterial strains and
     other bacterial strains. Query sequences submitted to Nif-Finder are overlaid and highlighted on this 2D Similarity
-    Plot, and are classified by their best matching <em>nif</em> profile. The color indicates the single best hit
+    Plot, and are classified by their best matching target profile. The color indicates the single best hit
     protein from SWISS-PROT sequences. Circle, triangle, and star plots represent hits from complete genome assemblies,
     draft genome assemblies, and Nif fusion proteins, respectively.
   </>
@@ -102,6 +133,9 @@ export default function Home() {
   const [cpu, setCpu] = useState(4);
   const [contextPaddingKb, setContextPaddingKb] = useState(10);
   const [plotOutput, setPlotOutput] = useState(true);
+  const [vnfMode, setVnfMode] = useState(false);
+  const [saveVnfRegionGbk, setSaveVnfRegionGbk] = useState(false);
+  const [selectedModelGenes, setSelectedModelGenes] = useState<string[]>(defaultAdditionalModelGenes);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
   const [evalueThreshold, setEvalueThreshold] = useState("1e-10");
@@ -133,6 +167,15 @@ export default function Home() {
   function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
     return Math.min(max, Math.max(min, Math.trunc(value)));
+  }
+
+  function toggleModelGene(gene: string, checked: boolean) {
+    setSelectedModelGenes((current) => {
+      if (checked) {
+        return current.includes(gene) ? current : [...current, gene];
+      }
+      return current.filter((item) => item !== gene);
+    });
   }
 
   async function loadExampleDataset(dataset: string) {
@@ -383,7 +426,7 @@ export default function Home() {
 
     const nifFasta = fastaContent(records.filter((record) => targetGenes.includes(record.prediction)));
     if (nifFasta) {
-      entries.push({ name: "nif_finder_detected_nif_vnf.faa", data: textBytes(nifFasta) });
+      entries.push({ name: "nif_finder_detected_nif_vnf_related.faa", data: textBytes(nifFasta) });
     }
 
     const allHitFasta = fastaContent(records);
@@ -404,6 +447,10 @@ export default function Home() {
     if (response?.genomicContextGenbank) {
       entries.push({ name: localContextGenbankFilename, data: textBytes(response.genomicContextGenbank) });
     }
+    const vnfContextGenbankFilename = response?.vnfContextGenbankFilename || "nif_finder_vnf_context.gbk";
+    if (response?.vnfContextGenbank) {
+      entries.push({ name: vnfContextGenbankFilename, data: textBytes(response.vnfContextGenbank) });
+    }
 
     downloadBlob("nif_finder_results.zip", new Blob([createZip(entries)], { type: "application/zip" }));
   }
@@ -413,6 +460,15 @@ export default function Home() {
     downloadText(
       response.genomicContextGenbankFilename || "nif_finder_local_context.gbk",
       response.genomicContextGenbank,
+      "chemical/x-genbank;charset=utf-8",
+    );
+  }
+
+  function downloadVnfContextGenbank() {
+    if (!response?.vnfContextGenbank) return;
+    downloadText(
+      response.vnfContextGenbankFilename || "nif_finder_vnf_context.gbk",
+      response.vnfContextGenbank,
       "chemical/x-genbank;charset=utf-8",
     );
   }
@@ -433,6 +489,9 @@ export default function Home() {
         contextPaddingKb,
         plot: plotOutput,
         evalue: Number(evalueThreshold),
+        vnfMode,
+        saveVnfRegionGbk,
+        selectedModelGenes,
       });
       let res: Response;
       if (requestBody.length > 1_000_000) {
@@ -525,9 +584,10 @@ export default function Home() {
         <div className="brand">
           <div className="brand-copy">
             <p>
-              Web tool for detecting and classifying nitrogen fixation (<em>nif</em>/<em>vnf</em>) genes, including{" "}
+              Web tool for detecting and classifying nitrogen fixation (<em>nif</em>/<em>vnf</em>) genes and related targets, including{" "}
               <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>,{" "}
-              <em>vnfD</em>, and <em>vnfK</em>, from protein or genome FASTA
+              <em>vnfH/nifH</em>, <em>vnfD</em>, <em>vnfK</em>, <em>vnfE/nifE</em>, <em>vnfN/nifN</em>, <em>vnfG</em>, <em>vnfDG</em>, <em>nifZ</em>, <em>nifX</em>, <em>nifP/cysE</em>, <em>nifT</em>, <em>nifV</em>, <em>nifS</em>,{" "}
+              <em>nifU</em>, <em>nifU_like</em>, <em>modAlike</em>, <em>modB/vupB</em>, <em>modC/vupC</em>, <em>vupA/modA</em>, <em>vupB/modB</em>, <em>vupC/modC</em>, and <em>cnfR/patB</em>, from protein or genome FASTA
               using HMMER3 hmmscan and nearest-neighbour (1-NN) classification on homology and protein length plots.
             </p>
             <div className="brand-citation">
@@ -635,7 +695,7 @@ export default function Home() {
               />
             </label>
             <label className="context-padding-field">
-              Size of the nif/vnf-encoding region to be visualized (kb)
+              Size of the nif/vnf-related region to be visualized (kb)
               <input
                 type="number"
                 min={1}
@@ -655,16 +715,67 @@ export default function Home() {
               Plot output
             </label>
             <label className="toggle-row">
+              <input type="checkbox" checked={vnfMode} onChange={(event) => setVnfMode(event.target.checked)} />
+              Vnf-focused mode
+              <span className="experimental-label">(experimental)</span>
+            </label>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={saveVnfRegionGbk}
+                onChange={(event) => setSaveVnfRegionGbk(event.target.checked)}
+              />
+              Vnf-region GBK
+              <span className="experimental-label">(experimental)</span>
+            </label>
+            <label className="toggle-row">
               <input
                 type="checkbox"
                 checked={showOnlyNifHits}
                 onChange={(event) => setShowOnlyNifHits(event.target.checked)}
               />
-              Show only nif/vnf hits
+              Show only target hits
             </label>
           </div>
         </div>
-        <p className="input-note">E-value can affect sensitivity; the default is recommended.</p>
+        <details className="experimental-options">
+          <summary>Additional target genes <span>(experimental)</span></summary>
+          <div className="experimental-options-body">
+            <p>
+              Core <em>nifHDKENB</em> models always run. Select optional targets to include in normal mode.
+            </p>
+            <div className="model-select-actions">
+              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedModelGenes(defaultAdditionalModelGenes)}>
+                All select
+              </button>
+              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedModelGenes([])}>
+                Clear
+              </button>
+            </div>
+            <div className="core-gene-list" aria-label="Core models">
+              {coreModelGenes.map((gene) => (
+                <span key={gene}>{gene}</span>
+              ))}
+            </div>
+            <div className="model-checkbox-grid">
+              {additionalModelGenes.map((gene) => (
+                <label key={gene.id} className="toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={selectedModelGenes.includes(gene.id)}
+                    disabled={vnfMode}
+                    onChange={(event) => toggleModelGene(gene.id, event.target.checked)}
+                  />
+                  {gene.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </details>
+        <p className="input-note">
+          E-value can affect sensitivity; the default is recommended. Vnf-focused mode ignores the additional target
+          selection and scans the vnfHDGKEN/vupABC model set.
+        </p>
 
         <button className="run-button" type="button" onClick={analyze} disabled={loading}>
           <Play size={18} aria-hidden />
@@ -680,7 +791,7 @@ export default function Home() {
       {activeTab === "run" ? (
       <section className="results">
         <div className="summary-row">
-          <div className="counter">{totalTargetCopies} nif/vnf copies identified</div>
+          <div className="counter">{totalTargetCopies} target copies identified</div>
         </div>
 
         {response?.error ? (
@@ -699,7 +810,7 @@ export default function Home() {
           <>
             <div className="summary-table-wrap">
               <p className="table-caption">
-                Table 1. Summary of <em>nif</em>/<em>vnf</em> genes identified by Nif-Finder.
+                Table 1. Summary of target genes identified by Nif-Finder.
               </p>
               <table className="summary-table">
                 <thead>
@@ -785,7 +896,7 @@ export default function Home() {
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextOverviewSvg)}
-                      alt="Whole genome view of matched nif/vnf gene locations"
+                      alt="Whole genome view of matched target gene locations"
                     />
                   </div>
                 ) : null}
@@ -795,7 +906,7 @@ export default function Home() {
                     <img
                       className="context-plot"
                       src={svgDataUri(response.genomicContextLocalSvg)}
-                      alt="Enlarged genomic view around matched nif/vnf hits"
+                      alt="Enlarged genomic view around matched target hits"
                     />
                   </div>
                 ) : null}
@@ -810,7 +921,13 @@ export default function Home() {
               {response?.genomicContextGenbank ? (
                 <button className="ghost-button" type="button" onClick={downloadLocalContextGenbank}>
                   <Download size={16} aria-hidden />
-                  Download nif/vnf-encoding region (gbk)
+                  Download nif/vnf-related region (gbk)
+                </button>
+              ) : null}
+              {response?.vnfContextGenbank ? (
+                <button className="ghost-button" type="button" onClick={downloadVnfContextGenbank}>
+                  <Download size={16} aria-hidden />
+                  Download vnf region (gbk)
                 </button>
               ) : null}
               <button className="ghost-button" type="button" onClick={downloadZip} disabled={records.length === 0}>
@@ -821,7 +938,7 @@ export default function Home() {
           </>
         ) : (
           <div className="empty-state">
-            Submit a protein FASTA file to view predicted nif/vnf hits, completeness calls, and scatter plot output.
+            Submit a protein FASTA file to view predicted target hits, completeness calls, and scatter plot output.
           </div>
         )}
 
@@ -852,8 +969,9 @@ export default function Home() {
               <h2>Manual</h2>
               <p>
                 Nif-Finder detects and classifies nitrogen fixation genes, including <em>nifH</em>, <em>nifD</em>,{" "}
-                <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>, <em>vnfD</em>, and <em>vnfK</em>, from
-                protein FASTA input. It uses
+                <em>nifK</em>, <em>nifE</em>, <em>nifN</em>, <em>nifB</em>, <em>vnfH/nifH</em>, <em>vnfD</em>, <em>vnfK</em>, <em>vnfE/nifE</em>, <em>vnfN/nifN</em>, <em>vnfG</em>,{" "}
+                <em>vnfDG</em>, <em>nifZ</em>, <em>nifX</em>, <em>nifP/cysE</em>, <em>nifT</em>, <em>nifV</em>, <em>nifS</em>, <em>nifU</em>, <em>nifU_like</em>, <em>modAlike</em>,{" "}
+                <em>modB/vupB</em>, <em>modC/vupC</em>, <em>vupA/modA</em>, <em>vupB/modB</em>, <em>vupC/modC</em>, and <em>cnfR/patB</em>, from protein FASTA input. It uses
                 HMMER3 hmmscan and nearest-neighbour classification on homology and protein length plots.
               </p>
 
@@ -870,7 +988,7 @@ export default function Home() {
 
               <h3>2. Upload GenBank for genome position plots (optional)</h3>
               <p>
-                When a full GenBank file is provided, Nif-Finder shows where the detected <em>nif</em>/<em>vnf</em>{" "}
+                When a full GenBank file is provided, Nif-Finder shows where the detected target{" "}
                 genes are located on the genome. This is useful for checking gene order, fragmented genes, and neighbouring coding
                 sequences. The GenBank upload limit is 30 MB.
               </p>
@@ -890,8 +1008,8 @@ export default function Home() {
               <p>
                 Press Run analysis to start the analysis. A run usually takes 1 to 5 minutes. Results include the query
                 identifier, -log10(E-value), alignment length, query protein length, predicted gene, and completeness
-                status. Nif/Vnf hits are labelled as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result
-                tables, detected nif/vnf FASTA sequences, the scatter plot, any genome context figures generated from the
+                status. Target hits are labelled as Full, Fragment, or Operon. The ZIP download contains TSV and CSV result
+                tables, detected target FASTA sequences, the scatter plot, any genome context figures generated from the
                 optional GenBank input, and an annotated GenBank file for the visualized local context region when
                 available.
               </p>
@@ -900,10 +1018,10 @@ export default function Home() {
 
               <h3>1. The scatter plot of the nif/vnf and related homologues</h3>
               <p>
-                The scatter plot summarizes homology search results for target <em>nif</em>/<em>vnf</em> proteins. Each panel
+                The scatter plot summarizes homology search results for target <em>nif</em>/<em>vnf</em> and related proteins. Each panel
                 corresponds to one protein: <em>nifH</em>, <em>nifD</em>, <em>nifK</em>, <em>nifE</em>,{" "}
-                <em>nifN</em>, or <em>nifB</em>, with <em>vnfD</em> and <em>vnfK</em> shown on their corresponding D
-                and K panels. The x-axis shows protein length in amino acids, and the y-axis shows
+                <em>nifN</em>, <em>nifB</em>, <em>vnfH</em>, <em>vnfD</em>, <em>vnfK</em>, <em>vnfE</em>, <em>vnfN</em>, <em>vnfG</em>, <em>nifZ</em>, <em>nifX</em>, <em>nifP</em>, <em>nifT</em>, <em>nifV</em>, <em>nifS</em>,{" "}
+                <em>nifU</em>, <em>modB</em>, <em>modC</em>, <em>modA</em>, <em>vupA</em>, <em>vupB</em>, <em>vupC</em>, or <em>cnfR/patB</em>, with <em>vnfDG</em> shown on the VnfG panel and like labels shown on their parent panels. The x-axis shows protein length in amino acids, and the y-axis shows
                 -log10(E-value), so points higher on the plot represent stronger matches. Full-length hits of the target
                 proteins are plotted in and around the dashed circle. Circle plots represent hits from
                 complete genomes, and triangle plots represent hits from draft genomes. Partial-length points outside
@@ -914,16 +1032,16 @@ export default function Home() {
                 <img src="/manual-scatter-results.jpg" alt="Annotated Nif-Finder scatter plot result explanation" />
               </figure>
 
-              <h3>2. Visualization of the nif/vnf-encoding region</h3>
+              <h3>2. Visualization of the nif/vnf-related region</h3>
               <p>
                 When a GenBank file is provided, Nif-Finder draws genome position plots for detected{" "}
-                <em>nifHDKENB</em> and currently supported <em>vnfD</em>/<em>vnfK</em> genes. The overview plot shows where the target region is encoded on the full
-                sequence, and the local plot shows a pinpoint view of the <em>nif</em>/<em>vnf</em>-encoding region. Colored arrows
-                show detected <em>nif</em>/<em>vnf</em> genes, and gray arrows show other ORFs based on the user-provided GenBank
+                <em>nifHDKENB</em>, supported <em>vnf</em> genes, and related target genes. The overview plot shows where the target region is encoded on the full
+                sequence, and the local plot shows a pinpoint view of the target region. Colored arrows
+                show detected target genes, and gray arrows show other ORFs based on the user-provided GenBank
                 file. The labels below target genes show whether each hit is full-length, fragmented,
                 or part of an operon. In the pinpoint view, positions are recalculated from the left edge of the
                 enlarged region, with the upstream end set to +1. These plots are useful for checking probable{" "}
-                <em>nif</em>/<em>vnf</em>-cluster regions and for cluster comparison using clinker.
+                <em>nif</em>/<em>vnf</em>-cluster regions and nearby target genes for cluster comparison using clinker.
               </p>
               <figure className="manual-figure manual-figure-wide">
                 <img src="/manual-genome-context-results.jpg" alt="Nif-Finder genome position and local context result" />

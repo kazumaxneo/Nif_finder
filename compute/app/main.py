@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import os
+import re
 import subprocess
 import tempfile
 import threading
@@ -21,7 +22,7 @@ from pydantic import BaseModel, Field
 
 NIF_FINDER_ROOT = Path(os.environ.get("NIF_FINDER_ROOT", "/app/generl_bacteria"))
 NIF_FINDER_DB = Path(os.environ.get("NIF_FINDER_DB", str(NIF_FINDER_ROOT)))
-NIF_FINDER_SCRIPT = NIF_FINDER_ROOT / "Nif_finderv0_25.py"
+NIF_FINDER_SCRIPT = NIF_FINDER_ROOT / "Nif_finderv0_30.py"
 PYTHON_BIN = os.environ.get("NIF_FINDER_PYTHON", "python")
 MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 MAX_GENBANK_BYTES = int(os.environ.get("MAX_GENBANK_BYTES", str(30 * 1024 * 1024)))
@@ -31,8 +32,23 @@ QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "240"))
 NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
 TOKEN_MAX_AGE_SECONDS = int(os.environ.get("TOKEN_MAX_AGE_SECONDS", "600"))
 NIF_GENES = {"nifH", "nifD", "nifK", "nifE", "nifN", "nifB"}
-VNF_GENES = {"vnfD", "vnfK"}
-TARGET_GENES = NIF_GENES | VNF_GENES
+CORE_MODEL_GENES = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"]
+MODEL_GENES = [
+    "nifH", "nifD", "nifK", "nifE", "nifN", "nifB",
+    "nifZ", "nifX", "nifP", "nifT", "nifV", "nifS", "nifU",
+    "vnfH", "vnfD", "vnfK", "vnfE", "vnfN", "vnfG",
+    "modA", "modB", "modC", "vupA", "vupB", "vupC", "cnfR-patB",
+]
+VNF_EXCLUSIVE_MODEL_GENES = ["vnfH", "vnfD", "vnfK", "vnfE", "vnfN", "vnfG", "vupA", "vupB", "vupC"]
+VNF_GENES = {"vnfH/nifH", "vnfD", "vnfK", "vnfE/nifE", "vnfN/nifN", "vnfG", "vnfDG"}
+VNF_CONTEXT_ANCHOR_GENES = {"vnfG", "vnfDG"}
+VNF_REGION_GENES = VNF_CONTEXT_ANCHOR_GENES | {"vnfH/nifH", "vnfD", "vnfK", "vnfE/nifE", "vnfN/nifN"}
+ACCESSORY_GENES = {
+    "nifZ", "nifX", "nifP/cysE", "nifT", "nifV", "nifS", "nifU", "nifU_like",
+    "modB/vupB", "modC/vupC", "modAlike", "vupA/modA", "vupB/modB",
+    "vupC/modC", "cnfR/patB", "cnfR/patB_like",
+}
+TARGET_GENES = NIF_GENES | VNF_GENES | ACCESSORY_GENES
 GENE_COLORS = {
     "nifH": "#E74C3C",
     "nifD": "#3498DB",
@@ -40,8 +56,30 @@ GENE_COLORS = {
     "nifE": "#F39C12",
     "nifN": "#9B59B6",
     "nifB": "#1ABC9C",
+    "nifZ": "#0B85D4",
+    "nifX": "#D81B60",
     "vnfD": "#1F77B4",
     "vnfK": "#1E8449",
+    "vnfG": "#130F73",
+    "vnfDG": "#0F0B5C",
+    "vnfH/nifH": "#B03A2E",
+    "vnfE/nifE": "#B9770E",
+    "vnfN/nifN": "#7D3C98",
+    "nifP/cysE": "#FB8CFF",
+    "nifT": "#8E44AD",
+    "nifV": "#6C8E23",
+    "nifS": "#CFEA35",
+    "nifU": "#599E87",
+    "nifU_like": "#7DBBA7",
+    "modB/vupB": "#F19AA0",
+    "modC/vupC": "#E86F7A",
+    "modA": "#E072BF",
+    "modAlike": "#E072BF",
+    "vupA/modA": "#B65FCF",
+    "vupB/modB": "#C75B73",
+    "vupC/modC": "#D46F5C",
+    "cnfR/patB": "#4D4D4D",
+    "cnfR/patB_like": "#7A7A7A",
 }
 LOCAL_CONTEXT_PADDING = int(os.environ.get("LOCAL_CONTEXT_PADDING", "10000"))
 LOCAL_CONTEXT_MERGE_DISTANCE = int(os.environ.get("LOCAL_CONTEXT_MERGE_DISTANCE", "20000"))
@@ -57,6 +95,9 @@ class AnalyzeRequest(BaseModel):
     contextPaddingKb: int = Field(default=10, ge=1, le=30)
     plot: bool = True
     evalue: float = Field(default=1e-10, gt=0)
+    vnfMode: bool = False
+    saveVnfRegionGbk: bool = False
+    selectedModelGenes: list[str] | None = None
 
 
 class ResultRecord(BaseModel):
@@ -77,6 +118,8 @@ class AnalyzeResponse(BaseModel):
     genomicContextLocalSvg: str | None = None
     genomicContextGenbank: str | None = None
     genomicContextGenbankFilename: str | None = None
+    vnfContextGenbank: str | None = None
+    vnfContextGenbankFilename: str | None = None
     genomicContextMessage: str | None = None
     runner: str = "nif-finder-compute"
 
@@ -167,6 +210,33 @@ def validate_genbank(genbank: str | None) -> str | None:
     if len(genbank.encode("utf-8")) > MAX_GENBANK_BYTES:
         raise HTTPException(status_code=413, detail=f"GenBank input exceeds {MAX_GENBANK_BYTES} bytes.")
     return genbank + "\n"
+
+
+def reference_name_for_model_gene(gene: str) -> str:
+    return "cnfR_patB" if gene == "cnfR-patB" else gene
+
+
+def resolve_model_args(selected_model_genes: list[str] | None, vnf_mode: bool) -> list[str]:
+    model_genes = VNF_EXCLUSIVE_MODEL_GENES if vnf_mode else CORE_MODEL_GENES + [
+        gene for gene in (selected_model_genes or []) if gene in MODEL_GENES and gene not in CORE_MODEL_GENES
+    ]
+    seen: set[str] = set()
+    ordered_model_genes = []
+    for gene in model_genes:
+        if gene in seen:
+            continue
+        seen.add(gene)
+        ordered_model_genes.append(gene)
+
+    profiles = [NIF_FINDER_DB / gene / "proteins_hmm" for gene in ordered_model_genes]
+    references = [
+        NIF_FINDER_DB / gene / f"{reference_name_for_model_gene(gene)}classification"
+        for gene in ordered_model_genes
+    ]
+    missing = [str(path) for path in profiles + references if not path.is_file()]
+    if missing:
+        raise HTTPException(status_code=500, detail="Nif-Finder model file(s) missing: " + ", ".join(missing))
+    return ["-t", *(str(path) for path in profiles), "-r", *(str(path) for path in references)]
 
 
 def normalize_identifier(value: str | None) -> str:
@@ -365,7 +435,7 @@ def add_feature(track: Any, feature: CdsFeature, *, label: str = "", color: str 
         ec=color,
         lw=0,
         zorder=2,
-        text_kws={"size": 9, "rotation": 0, "vpos": "top", "hpos": "center"} if label else None,
+        text_kws={"size": 6, "rotation": 0, "vpos": "top", "hpos": "center"} if label else None,
     )
 
 
@@ -379,10 +449,17 @@ def local_hit_suffix(hit: MatchedHit) -> str:
     return ""
 
 
+def display_gene_label(label: str) -> str:
+    return {
+        "nifT": "T",
+        "cnfR/patB_like": "cnfR_like",
+    }.get(label, label)
+
+
 def hit_label(hit: MatchedHit) -> str:
     if hit.completeness == "Full_operon" and hit.operon_label:
         return hit.operon_label
-    return hit.prediction
+    return display_gene_label(hit.prediction)
 
 
 def overview_hit_label(hit: MatchedHit) -> str:
@@ -435,7 +512,7 @@ def build_overview_svg(matches: list[MatchedHit], out_path: Path) -> None:
         key=lambda item: item[0],
     )
     fig_height = max(0.45, min(0.8, 3.8 / max(1, len(contigs))))
-    gv = GenomeViz(fig_width=12, fig_track_height=fig_height, show_axis=False, theme="light")
+    gv = GenomeViz(fig_width=16, fig_track_height=fig_height, show_axis=False, theme="light")
     for contig, contig_length in contigs:
         track = gv.add_feature_track(contig, contig_length, labelsize=10, line_kws=TRACK_LINE_KWS)
         add_overview_position_labels(track, contig_length)
@@ -476,6 +553,43 @@ def group_local_regions(matches: list[MatchedHit], context_padding: int = LOCAL_
             end = min(contig_length, max(m.feature.end for m in current) + context_padding)
             regions.append((contig, start, end, current))
     return regions
+
+
+def feature_distance_bp(feature_a: CdsFeature, feature_b: CdsFeature) -> int | None:
+    if feature_a.contig != feature_b.contig:
+        return None
+    if feature_a.end < feature_b.start:
+        return feature_b.start - feature_a.end
+    if feature_b.end < feature_a.start:
+        return feature_a.start - feature_b.end
+    return 0
+
+
+def select_vnf_anchor_region_matches(matches: list[MatchedHit], max_distance_bp: int) -> list[MatchedHit]:
+    anchors = [match for match in matches if match.prediction in VNF_CONTEXT_ANCHOR_GENES]
+    if not anchors:
+        return []
+
+    selected: list[MatchedHit] = []
+    used: set[tuple[str, int, int, str]] = set()
+    for match in matches:
+        if match.prediction not in VNF_REGION_GENES:
+            continue
+        if match.prediction in VNF_CONTEXT_ANCHOR_GENES:
+            keep = True
+        else:
+            keep = any(
+                distance is not None and distance <= max_distance_bp
+                for distance in (feature_distance_bp(match.feature, anchor.feature) for anchor in anchors)
+            )
+        if not keep:
+            continue
+        key = (match.feature.contig, match.feature.start, match.feature.end, match.prediction)
+        if key in used:
+            continue
+        used.add(key)
+        selected.append(match)
+    return selected
 
 
 def safe_filename(name: str, suffix: str) -> str:
@@ -569,10 +683,78 @@ def should_hide_whole_genome_view(matches: list[MatchedHit], context_padding: in
     return True
 
 
+def target_legend_entries(matches: list[MatchedHit]) -> list[tuple[str, str]]:
+    predictions = {match.prediction for match in matches if match.prediction in TARGET_GENES}
+    ordered_genes = [
+        "nifH", "nifD", "nifK", "nifE", "nifN", "nifB",
+        "vnfH/nifH", "vnfD", "vnfK", "vnfE/nifE", "vnfN/nifN", "vnfG", "vnfDG",
+        "nifZ", "nifX", "nifP/cysE", "nifT", "nifV", "nifS", "nifU", "nifU_like",
+        "modB/vupB", "modC/vupC", "modAlike", "vupA/modA", "vupB/modB",
+        "vupC/modC", "cnfR/patB", "cnfR/patB_like",
+    ]
+    return [
+        (gene, GENE_COLORS.get(gene, "#0f766e"))
+        for gene in ordered_genes
+        if gene in predictions
+    ]
+
+
+def add_svg_target_legend(path: Path, matches: list[MatchedHit]) -> None:
+    entries = target_legend_entries(matches)
+    if not entries:
+        return
+    text = path.read_text(encoding="utf-8")
+    svg_match = re.search(r"<svg\\b[^>]*>", text)
+    view_box_match = re.search(r'viewBox="([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)"', text)
+    if not svg_match or not view_box_match:
+        return
+    x0, y0, width, height = [float(value) for value in view_box_match.groups()]
+    columns = 4
+    row_height = 22
+    rows = (len(entries) + columns - 1) // columns
+    legend_height = 30 + rows * row_height
+    legend_y = height + 15
+    item_width = max(120, (width - 80) / columns)
+    parts = [
+        f'<g id="nif-finder-target-legend">',
+        f'<text x="40" y="{legend_y:.1f}" font-size="11" font-family="Arial" '
+        f'font-weight="bold">Detected target genes</text>',
+    ]
+    for idx, (label, color) in enumerate(entries):
+        col = idx % columns
+        row = idx // columns
+        item_x = 40 + col * item_width
+        item_y = legend_y + 18 + row * row_height
+        parts.append(
+            f'<rect x="{item_x:.1f}" y="{item_y - 8:.1f}" width="16" height="9" '
+            f'fill="{color}" stroke="{color}" stroke-width="0.5" />'
+        )
+        parts.append(
+        f'<text x="{item_x + 22:.1f}" y="{item_y:.1f}" font-size="10" '
+            f'font-family="Arial">{display_gene_label(label)}</text>'
+        )
+    parts.append("</g>")
+    new_height = height + legend_height
+    text = re.sub(
+        r'viewBox="([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)"',
+        f'viewBox="{x0:g} {y0:g} {width:g} {new_height:g}"',
+        text,
+        count=1,
+    )
+    text = re.sub(
+        r'height="([0-9.]+)(pt|px)?"',
+        lambda m: f'height="{new_height:g}{m.group(2) or ""}"',
+        text,
+        count=1,
+    )
+    text = text.replace("</svg>", "\n".join(parts) + "\n</svg>", 1)
+    path.write_text(text, encoding="utf-8")
+
+
 def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature], out_path: Path, context_padding: int) -> None:
     regions = group_local_regions(matches, context_padding)
     fig_height = max(0.55, min(0.9, 4.5 / max(1, len(regions))))
-    gv = GenomeViz(fig_width=12, fig_track_height=fig_height, show_axis=False, theme="light")
+    gv = GenomeViz(fig_width=18, fig_track_height=fig_height, show_axis=False, theme="light")
     hit_keys = {
         (match.feature.contig, match.feature.start, match.feature.end): match
         for match in matches
@@ -604,6 +786,7 @@ def build_local_context_svg(matches: list[MatchedHit], features: list[CdsFeature
             else:
                 add_feature(track, clipped_feature)
     gv.savefig(out_path, dpi=140, pad_inches=0.25)
+    add_svg_target_legend(out_path, matches)
 
 
 def build_genomic_context(
@@ -612,6 +795,7 @@ def build_genomic_context(
     tmp_dir: Path,
     fasta: str | None = None,
     context_padding: int = LOCAL_CONTEXT_PADDING,
+    include_vnf_region: bool = False,
 ) -> dict[str, str | None]:
     if not genbank:
         return {}
@@ -633,11 +817,19 @@ def build_genomic_context(
             build_overview_svg(matches, overview_path)
         build_local_context_svg(matches, features, local_path, context_padding)
         local_genbank, local_genbank_filename = build_local_context_genbank(genbank, matches, context_padding)
+        vnf_genbank = None
+        vnf_genbank_filename = None
+        if include_vnf_region:
+            vnf_matches = select_vnf_anchor_region_matches(matches, LOCAL_CONTEXT_MERGE_DISTANCE)
+            if vnf_matches:
+                vnf_genbank, vnf_genbank_filename = build_local_context_genbank(genbank, vnf_matches, context_padding)
         return {
             "genomicContextOverviewSvg": None if hide_overview else svg_to_text(overview_path),
             "genomicContextLocalSvg": svg_to_text(local_path),
             "genomicContextGenbank": local_genbank,
             "genomicContextGenbankFilename": local_genbank_filename,
+            "vnfContextGenbank": vnf_genbank,
+            "vnfContextGenbankFilename": vnf_genbank_filename,
             "genomicContextMessage": None,
         }
     except Exception as exc:
@@ -712,8 +904,11 @@ def analyze(
         with tempfile.TemporaryDirectory(prefix="nif-finder-api-") as tmp:
             tmp_dir = Path(tmp)
             query_path = tmp_dir / "query.faa"
+            genbank_path = tmp_dir / "query.gbk"
             out_prefix = tmp_dir / "result"
             query_path.write_text(fasta)
+            if genbank:
+                genbank_path.write_text(genbank)
 
             command = [
                 PYTHON_BIN,
@@ -729,6 +924,13 @@ def analyze(
                 "--evalue",
                 str(request.evalue),
             ]
+            command.extend(resolve_model_args(request.selectedModelGenes, request.vnfMode))
+            if genbank:
+                command.extend(["--genbank", str(genbank_path), "--context_size_kb", str(request.contextPaddingKb)])
+            if request.vnfMode:
+                command.extend(["--save_vnf_hdgken_vupabc_fasta"])
+            if request.saveVnfRegionGbk and genbank:
+                command.extend(["--save_vnf_region_gbk"])
             if request.plot:
                 command.append("-p")
             env = {
@@ -772,7 +974,14 @@ def analyze(
                 output = "\n".join(part for part in [completed.stdout.strip(), completed.stderr.strip()] if part)
                 plot_message = output[-1000:] if output else "Nif-Finder did not produce a scatter plot."
 
-            genomic_context = build_genomic_context(genbank, records, tmp_dir, fasta, request.contextPaddingKb * 1000)
+            genomic_context = build_genomic_context(
+                genbank,
+                records,
+                tmp_dir,
+                fasta,
+                request.contextPaddingKb * 1000,
+                include_vnf_region=request.saveVnfRegionGbk,
+            )
     finally:
         analysis_semaphore.release()
 

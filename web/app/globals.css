@@ -418,6 +418,69 @@ input:focus {
   width: fit-content;
 }
 
+.experimental-label {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.experimental-options {
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.experimental-options summary {
+  color: #33404d;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.experimental-options summary span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.experimental-options-body {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+
+.experimental-options-body p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.model-select-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.core-gene-list,
+.model-checkbox-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.core-gene-list span {
+  background: #eef2f5;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #33404d;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 8px;
+}
+
+.model-checkbox-grid {
+  gap: 6px 12px;
+}
+
 .advanced-settings {
   align-items: center;
   align-self: flex-start;

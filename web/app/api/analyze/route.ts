@@ -19,6 +19,9 @@ type AnalyzeRequest = {
   contextPaddingKb?: number;
   plot?: boolean;
   evalue?: number;
+  vnfMode?: boolean;
+  saveVnfRegionGbk?: boolean;
+  selectedModelGenes?: string[];
 };
 
 function countFastaRecords(fasta: string) {
@@ -46,12 +49,49 @@ function parseNifFinderTsv(tsv: string) {
     });
 }
 
-async function runLocalNifFinder(fasta: string, jobs: number, cpu: number, plot: boolean, evalue: number) {
+const coreModelGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
+const allowedModelGenes = [
+  ...coreModelGenes,
+  "nifZ", "nifX", "nifP", "nifT", "nifV", "nifS", "nifU",
+  "vnfH", "vnfD", "vnfK", "vnfE", "vnfN", "vnfG",
+  "modA", "modB", "modC", "vupA", "vupB", "vupC", "cnfR-patB",
+];
+const vnfExclusiveModelGenes = ["vnfH", "vnfD", "vnfK", "vnfE", "vnfN", "vnfG", "vupA", "vupB", "vupC"];
+
+function referenceNameForModelGene(gene: string) {
+  return gene === "cnfR-patB" ? "cnfR_patB" : gene;
+}
+
+function modelArgs(root: string, selectedModelGenes: string[] | undefined, vnfMode: boolean) {
+  const genes = vnfMode
+    ? vnfExclusiveModelGenes
+    : [
+        ...coreModelGenes,
+        ...(selectedModelGenes ?? []).filter((gene) => allowedModelGenes.includes(gene) && !coreModelGenes.includes(gene)),
+      ];
+  const orderedGenes = Array.from(new Set(genes));
+  return [
+    "-t",
+    ...orderedGenes.map((gene) => path.join(root, gene, "proteins_hmm")),
+    "-r",
+    ...orderedGenes.map((gene) => path.join(root, gene, `${referenceNameForModelGene(gene)}classification`)),
+  ];
+}
+
+async function runLocalNifFinder(
+  fasta: string,
+  jobs: number,
+  cpu: number,
+  plot: boolean,
+  evalue: number,
+  vnfMode: boolean,
+  selectedModelGenes?: string[],
+) {
   const root = process.env.NIF_FINDER_ROOT
     ? path.resolve(process.env.NIF_FINDER_ROOT)
     : path.resolve(process.cwd(), "..", "generl_bacteria");
   const python = process.env.NIF_FINDER_PYTHON ?? "python";
-  const script = path.join(root, "Nif_finderv0_25.py");
+  const script = path.join(root, "Nif_finderv0_30.py");
   const workDir = path.join(tmpdir(), `nif-finder-web-${randomUUID()}`);
   const queryPath = path.join(workDir, "query.faa");
   const outPrefix = path.join(workDir, "result");
@@ -74,6 +114,10 @@ async function runLocalNifFinder(fasta: string, jobs: number, cpu: number, plot:
     ];
     if (plot) {
       args.push("-p");
+    }
+    args.push(...modelArgs(root, selectedModelGenes, vnfMode));
+    if (vnfMode) {
+      args.push("--save_vnf_hdgken_vupabc_fasta");
     }
 
     await execFileAsync(
@@ -127,6 +171,8 @@ export async function POST(request: NextRequest) {
           body.cpu ?? 4,
           body.plot ?? true,
           body.evalue ?? 1e-10,
+          body.vnfMode ?? false,
+          body.selectedModelGenes,
         );
         return NextResponse.json(result);
       } catch (error) {
@@ -169,6 +215,9 @@ export async function POST(request: NextRequest) {
         contextPaddingKb: body.contextPaddingKb ?? 10,
         plot: body.plot ?? true,
         evalue: body.evalue ?? 1e-10,
+        vnfMode: body.vnfMode ?? false,
+        saveVnfRegionGbk: body.saveVnfRegionGbk ?? false,
+        selectedModelGenes: body.selectedModelGenes ?? [],
       }),
     });
   } catch (error) {
