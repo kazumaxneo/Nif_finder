@@ -38,29 +38,18 @@ const accessoryGenes = [
 ];
 const targetGenes = [...nifGenes, ...vnfGenes, ...accessoryGenes];
 const coreModelGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
-const additionalModelGenes = [
+const vnfVupModelGenes = [
   { id: "vnfH", label: "vnfH" },
   { id: "vnfD", label: "vnfD" },
   { id: "vnfK", label: "vnfK" },
   { id: "vnfE", label: "vnfE" },
   { id: "vnfN", label: "vnfN" },
   { id: "vnfG", label: "vnfG/vnfDG" },
-  { id: "nifZ", label: "nifZ" },
-  { id: "nifX", label: "nifX" },
-  { id: "nifP", label: "nifP/cysE" },
-  { id: "nifT", label: "nifT" },
-  { id: "nifV", label: "nifV" },
-  { id: "nifS", label: "nifS" },
-  { id: "nifU", label: "nifU" },
-  { id: "modA", label: "modA" },
-  { id: "modB", label: "modB/vupB" },
-  { id: "modC", label: "modC/vupC" },
   { id: "vupA", label: "vupA/modA" },
   { id: "vupB", label: "vupB/modB" },
   { id: "vupC", label: "vupC/modC" },
-  { id: "cnfR-patB", label: "cnfR/patB" },
 ];
-const defaultAdditionalModelGenes = additionalModelGenes.map((gene) => gene.id);
+const defaultVnfVupModelGenes = vnfVupModelGenes.map((gene) => gene.id);
 const maxJobs = 4;
 const maxCpu = 12;
 const maxContextPaddingKb = 30;
@@ -133,9 +122,9 @@ export default function Home() {
   const [cpu, setCpu] = useState(4);
   const [contextPaddingKb, setContextPaddingKb] = useState(10);
   const [plotOutput, setPlotOutput] = useState(true);
-  const [vnfMode, setVnfMode] = useState(false);
+  const [includeVnfVup, setIncludeVnfVup] = useState(false);
   const [saveVnfRegionGbk, setSaveVnfRegionGbk] = useState(false);
-  const [selectedModelGenes, setSelectedModelGenes] = useState<string[]>(defaultAdditionalModelGenes);
+  const [selectedVnfVupGenes, setSelectedVnfVupGenes] = useState<string[]>(defaultVnfVupModelGenes);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
   const [evalueThreshold, setEvalueThreshold] = useState("1e-10");
@@ -170,7 +159,7 @@ export default function Home() {
   }
 
   function toggleModelGene(gene: string, checked: boolean) {
-    setSelectedModelGenes((current) => {
+    setSelectedVnfVupGenes((current) => {
       if (checked) {
         return current.includes(gene) ? current : [...current, gene];
       }
@@ -489,9 +478,9 @@ export default function Home() {
         contextPaddingKb,
         plot: plotOutput,
         evalue: Number(evalueThreshold),
-        vnfMode,
-        saveVnfRegionGbk,
-        selectedModelGenes,
+        vnfMode: false,
+        saveVnfRegionGbk: includeVnfVup && saveVnfRegionGbk,
+        selectedModelGenes: includeVnfVup ? selectedVnfVupGenes : [],
       });
       let res: Response;
       if (requestBody.length > 1_000_000) {
@@ -715,17 +704,17 @@ export default function Home() {
               Plot output
             </label>
             <label className="toggle-row">
-              <input type="checkbox" checked={vnfMode} onChange={(event) => setVnfMode(event.target.checked)} />
-              Vnf-focused mode
-              <span className="experimental-label">(experimental)</span>
-            </label>
-            <label className="toggle-row">
               <input
                 type="checkbox"
-                checked={saveVnfRegionGbk}
-                onChange={(event) => setSaveVnfRegionGbk(event.target.checked)}
+                checked={includeVnfVup}
+                onChange={(event) => {
+                  setIncludeVnfVup(event.target.checked);
+                  if (!event.target.checked) {
+                    setSaveVnfRegionGbk(false);
+                  }
+                }}
               />
-              Vnf-region GBK
+              Add vnf/vup detection
               <span className="experimental-label">(experimental)</span>
             </label>
             <label className="toggle-row">
@@ -738,17 +727,18 @@ export default function Home() {
             </label>
           </div>
         </div>
-        <details className="experimental-options">
-          <summary>Additional target genes <span>(experimental)</span></summary>
+        {includeVnfVup ? (
+        <details className="experimental-options" open>
+          <summary>Vnf/vup target genes <span>(experimental)</span></summary>
           <div className="experimental-options-body">
             <p>
-              Core <em>nifHDKENB</em> models always run. Select optional targets to include in normal mode.
+              Core <em>nifHDKENB</em> models always run. Select vnf/vup models to add to this analysis.
             </p>
             <div className="model-select-actions">
-              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedModelGenes(defaultAdditionalModelGenes)}>
+              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedVnfVupGenes(defaultVnfVupModelGenes)}>
                 All select
               </button>
-              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedModelGenes([])}>
+              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedVnfVupGenes([])}>
                 Clear
               </button>
             </div>
@@ -758,23 +748,31 @@ export default function Home() {
               ))}
             </div>
             <div className="model-checkbox-grid">
-              {additionalModelGenes.map((gene) => (
+              {vnfVupModelGenes.map((gene) => (
                 <label key={gene.id} className="toggle-row">
                   <input
                     type="checkbox"
-                    checked={selectedModelGenes.includes(gene.id)}
-                    disabled={vnfMode}
+                    checked={selectedVnfVupGenes.includes(gene.id)}
                     onChange={(event) => toggleModelGene(gene.id, event.target.checked)}
                   />
                   {gene.label}
                 </label>
               ))}
             </div>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={saveVnfRegionGbk}
+                onChange={(event) => setSaveVnfRegionGbk(event.target.checked)}
+              />
+              Output vnf-only GenBank region
+              <span className="experimental-label">(experimental)</span>
+            </label>
           </div>
         </details>
+        ) : null}
         <p className="input-note">
-          E-value can affect sensitivity; the default is recommended. Vnf-focused mode ignores the additional target
-          selection and scans the vnfHDGKEN/vupABC model set.
+          E-value can affect sensitivity; the default is recommended.
         </p>
 
         <button className="run-button" type="button" onClick={analyze} disabled={loading}>
