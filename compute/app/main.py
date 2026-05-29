@@ -27,8 +27,8 @@ PYTHON_BIN = os.environ.get("NIF_FINDER_PYTHON", "python")
 MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 MAX_GENBANK_BYTES = int(os.environ.get("MAX_GENBANK_BYTES", str(30 * 1024 * 1024)))
 REQUEST_TIMEOUT_SECONDS = max(600, int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "600")))
-MAX_CONCURRENT_ANALYSES = int(os.environ.get("MAX_CONCURRENT_ANALYSES", "2"))
-QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "240"))
+MAX_CONCURRENT_ANALYSES = int(os.environ.get("MAX_CONCURRENT_ANALYSES", "4"))
+QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "0"))
 NIF_FINDER_API_KEY = os.environ.get("NIF_FINDER_API_KEY")
 TOKEN_MAX_AGE_SECONDS = int(os.environ.get("TOKEN_MAX_AGE_SECONDS", "600"))
 NIF_GENES = {"nifH", "nifD", "nifK", "nifE", "nifN", "nifB"}
@@ -897,7 +897,7 @@ def analyze(
     if not acquired:
         raise HTTPException(
             status_code=429,
-            detail="The compute server is busy. Please try again in a few minutes.",
+            detail="The compute server is currently busy because 4 analyses are already running. Please try again in a few minutes.",
         )
 
     try:

@@ -419,8 +419,9 @@ input:focus {
 }
 
 .experimental-label {
-  color: var(--muted);
+  color: #d92d20;
   font-size: 11px;
+  font-weight: 750;
 }
 
 .experimental-options {
