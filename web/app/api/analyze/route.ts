@@ -21,6 +21,7 @@ type AnalyzeRequest = {
   evalue?: number;
   vnfMode?: boolean;
   saveVnfRegionGbk?: boolean;
+  skipAccessoryOnlyLocalContext?: boolean;
   selectedModelGenes?: string[];
 };
 
@@ -217,6 +218,7 @@ export async function POST(request: NextRequest) {
         evalue: body.evalue ?? 1e-10,
         vnfMode: body.vnfMode ?? false,
         saveVnfRegionGbk: body.saveVnfRegionGbk ?? false,
+        skipAccessoryOnlyLocalContext: body.skipAccessoryOnlyLocalContext ?? true,
         selectedModelGenes: body.selectedModelGenes ?? [],
       }),
     });

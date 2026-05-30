@@ -124,6 +124,7 @@ export default function Home() {
   const [plotOutput, setPlotOutput] = useState(true);
   const [includeVnfVup, setIncludeVnfVup] = useState(false);
   const [saveVnfRegionGbk, setSaveVnfRegionGbk] = useState(false);
+  const [skipAccessoryOnlyLocalContext, setSkipAccessoryOnlyLocalContext] = useState(true);
   const [selectedVnfVupGenes, setSelectedVnfVupGenes] = useState<string[]>(defaultVnfVupModelGenes);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
@@ -480,6 +481,7 @@ export default function Home() {
         evalue: Number(evalueThreshold),
         vnfMode: false,
         saveVnfRegionGbk: includeVnfVup && saveVnfRegionGbk,
+        skipAccessoryOnlyLocalContext,
         selectedModelGenes: includeVnfVup ? selectedVnfVupGenes : [],
       });
       let res: Response;
@@ -725,6 +727,14 @@ export default function Home() {
               />
               Show only target hits
             </label>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
+                checked={skipAccessoryOnlyLocalContext}
+                onChange={(event) => setSkipAccessoryOnlyLocalContext(event.target.checked)}
+              />
+              Hide local maps with only nifP/mod/vup hits
+            </label>
           </div>
         </div>
         {includeVnfVup ? (
@@ -883,7 +893,7 @@ export default function Home() {
                   <div className="notice">
                     <AlertCircle size={20} aria-hidden />
                     <div>
-                      <strong>Genomic context was not plotted.</strong>
+                      <strong>Genomic context notice.</strong>
                       <p>{response.genomicContextMessage}</p>
                     </div>
                   </div>

@@ -48,6 +48,10 @@ ACCESSORY_GENES = {
     "modB/vupB", "modC/vupC", "modAlike", "vupA/modA", "vupB/modB",
     "vupC/modC", "cnfR/patB", "cnfR/patB_like",
 }
+LOCAL_CONTEXT_SKIP_ONLY_GENES = {
+    "nifP/cysE", "modAlike", "modB/vupB", "modC/vupC",
+    "vupA/modA", "vupB/modB", "vupC/modC",
+}
 TARGET_GENES = NIF_GENES | VNF_GENES | ACCESSORY_GENES
 GENE_COLORS = {
     "nifH": "#E74C3C",
@@ -97,6 +101,7 @@ class AnalyzeRequest(BaseModel):
     evalue: float = Field(default=1e-10, gt=0)
     vnfMode: bool = False
     saveVnfRegionGbk: bool = False
+    skipAccessoryOnlyLocalContext: bool = True
     selectedModelGenes: list[str] | None = None
 
 
@@ -555,6 +560,18 @@ def group_local_regions(matches: list[MatchedHit], context_padding: int = LOCAL_
     return regions
 
 
+def filter_local_context_matches(matches: list[MatchedHit], context_padding: int, skip_accessory_only: bool) -> list[MatchedHit]:
+    if not skip_accessory_only:
+        return matches
+    kept: list[MatchedHit] = []
+    for _contig, _start, _end, region_matches in group_local_regions(matches, context_padding):
+        predictions = {match.prediction for match in region_matches}
+        if predictions and predictions.issubset(LOCAL_CONTEXT_SKIP_ONLY_GENES):
+            continue
+        kept.extend(region_matches)
+    return kept
+
+
 def feature_distance_bp(feature_a: CdsFeature, feature_b: CdsFeature) -> int | None:
     if feature_a.contig != feature_b.contig:
         return None
@@ -704,7 +721,7 @@ def add_svg_target_legend(path: Path, matches: list[MatchedHit]) -> None:
     if not entries:
         return
     text = path.read_text(encoding="utf-8")
-    svg_match = re.search(r"<svg\\b[^>]*>", text)
+    svg_match = re.search(r"<svg\b[^>]*>", text)
     view_box_match = re.search(r'viewBox="([0-9.]+) ([0-9.]+) ([0-9.]+) ([0-9.]+)"', text)
     if not svg_match or not view_box_match:
         return
@@ -718,7 +735,7 @@ def add_svg_target_legend(path: Path, matches: list[MatchedHit]) -> None:
     parts = [
         f'<g id="nif-finder-target-legend">',
         f'<text x="40" y="{legend_y:.1f}" font-size="11" font-family="Arial" '
-        f'font-weight="bold">Detected target genes</text>',
+        f'font-weight="bold">Colored ORFs</text>',
     ]
     for idx, (label, color) in enumerate(entries):
         col = idx % columns
@@ -796,6 +813,7 @@ def build_genomic_context(
     fasta: str | None = None,
     context_padding: int = LOCAL_CONTEXT_PADDING,
     include_vnf_region: bool = False,
+    skip_accessory_only_local_context: bool = True,
 ) -> dict[str, str | None]:
     if not genbank:
         return {}
@@ -815,8 +833,19 @@ def build_genomic_context(
         hide_overview = should_hide_whole_genome_view(matches, context_padding)
         if not hide_overview:
             build_overview_svg(matches, overview_path)
-        build_local_context_svg(matches, features, local_path, context_padding)
-        local_genbank, local_genbank_filename = build_local_context_genbank(genbank, matches, context_padding)
+        local_matches = filter_local_context_matches(matches, context_padding, skip_accessory_only_local_context)
+        local_message = None
+        if local_matches:
+            build_local_context_svg(local_matches, features, local_path, context_padding)
+            local_genbank, local_genbank_filename = build_local_context_genbank(genbank, local_matches, context_padding)
+        else:
+            local_genbank = None
+            local_genbank_filename = None
+            if skip_accessory_only_local_context:
+                local_message = (
+                    "The enlarged local view was omitted because all matched regions contained only "
+                    "nifP/mod/vup accessory hits."
+                )
         vnf_genbank = None
         vnf_genbank_filename = None
         if include_vnf_region:
@@ -825,12 +854,12 @@ def build_genomic_context(
                 vnf_genbank, vnf_genbank_filename = build_local_context_genbank(genbank, vnf_matches, context_padding)
         return {
             "genomicContextOverviewSvg": None if hide_overview else svg_to_text(overview_path),
-            "genomicContextLocalSvg": svg_to_text(local_path),
+            "genomicContextLocalSvg": svg_to_text(local_path) if local_matches else None,
             "genomicContextGenbank": local_genbank,
             "genomicContextGenbankFilename": local_genbank_filename,
             "vnfContextGenbank": vnf_genbank,
             "vnfContextGenbankFilename": vnf_genbank_filename,
-            "genomicContextMessage": None,
+            "genomicContextMessage": local_message,
         }
     except Exception as exc:
         return {"genomicContextMessage": f"Genomic context visualization failed: {exc}"}
@@ -981,6 +1010,7 @@ def analyze(
                 fasta,
                 request.contextPaddingKb * 1000,
                 include_vnf_region=request.saveVnfRegionGbk,
+                skip_accessory_only_local_context=request.skipAccessoryOnlyLocalContext,
             )
     finally:
         analysis_semaphore.release()
