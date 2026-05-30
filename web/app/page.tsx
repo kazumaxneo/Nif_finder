@@ -56,6 +56,7 @@ const maxContextPaddingKb = 30;
 const exampleDatasets = [
   { id: "none", label: "None" },
   { id: "leptolyngbya-boryana-dg5", label: "Leptolyngbya boryana dg5" },
+  { id: "anabaena-variabilis-atcc-29413", label: "Anabaena variabilis ATCC 29413" },
   { id: "calothrix-fragmented", label: "Calothrix strain's fragmented nif genes" },
 ];
 
@@ -179,6 +180,14 @@ export default function Home() {
       setFasta(await fastaResponse.text());
       setGenbank(await genbankResponse.text());
       setGenbankFileName("leptolyngbya_boryana_dg5.gbk");
+    } else if (dataset === "anabaena-variabilis-atcc-29413") {
+      const [fastaResponse, genbankResponse] = await Promise.all([
+        fetch("/examples/anabaena_variabilis_atcc_29413.faa"),
+        fetch("/examples/anabaena_variabilis_atcc_29413.gbff"),
+      ]);
+      setFasta(await fastaResponse.text());
+      setGenbank(await genbankResponse.text());
+      setGenbankFileName("anabaena_variabilis_atcc_29413.gbff");
     } else if (dataset === "calothrix-fragmented") {
       const exampleResponse = await fetch("/examples/calothrix_fragmented_nif_genes.faa");
       setFasta(await exampleResponse.text());
