@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useMemo, useState } from "react";
+import { ChangeEvent, Dispatch, SetStateAction, useMemo, useState } from "react";
 import { AlertCircle, BookOpen, Download, FileUp, HomeIcon, Info, Play } from "lucide-react";
 
 type ResultRecord = {
@@ -38,6 +38,19 @@ const accessoryGenes = [
 ];
 const targetGenes = [...nifGenes, ...vnfGenes, ...accessoryGenes];
 const coreModelGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
+const additionalNifModelGenes = [
+  { id: "nifZ", label: "nifZ" },
+  { id: "nifX", label: "nifX" },
+  { id: "nifP", label: "nifP/cysE" },
+  { id: "nifT", label: "nifT" },
+  { id: "nifV", label: "nifV" },
+  { id: "nifS", label: "nifS" },
+  { id: "nifU", label: "nifU/nifU_like" },
+  { id: "modA", label: "modAlike" },
+  { id: "modB", label: "modB/vupB" },
+  { id: "modC", label: "modC/vupC" },
+  { id: "cnfR-patB", label: "cnfR/patB" },
+];
 const vnfVupModelGenes = [
   { id: "vnfH", label: "vnfH" },
   { id: "vnfD", label: "vnfD" },
@@ -49,10 +62,13 @@ const vnfVupModelGenes = [
   { id: "vupB", label: "vupB/modB" },
   { id: "vupC", label: "vupC/modC" },
 ];
+const defaultAdditionalNifModelGenes = additionalNifModelGenes.map((gene) => gene.id);
 const defaultVnfVupModelGenes = vnfVupModelGenes.map((gene) => gene.id);
 const maxJobs = 4;
 const maxCpu = 12;
 const maxContextPaddingKb = 30;
+const directComputeRequestThreshold = 1_000_000;
+const apiRouteRetryMaxBytes = 4_000_000;
 const exampleDatasets = [
   { id: "none", label: "None" },
   { id: "leptolyngbya-boryana-dg5", label: "Leptolyngbya boryana dg5" },
@@ -123,9 +139,11 @@ export default function Home() {
   const [cpu, setCpu] = useState(4);
   const [contextPaddingKb, setContextPaddingKb] = useState(10);
   const [plotOutput, setPlotOutput] = useState(true);
+  const [includeAdditionalNif, setIncludeAdditionalNif] = useState(false);
   const [includeVnfVup, setIncludeVnfVup] = useState(false);
   const [saveVnfRegionGbk, setSaveVnfRegionGbk] = useState(false);
   const [skipAccessoryOnlyLocalContext, setSkipAccessoryOnlyLocalContext] = useState(true);
+  const [selectedAdditionalNifGenes, setSelectedAdditionalNifGenes] = useState<string[]>(defaultAdditionalNifModelGenes);
   const [selectedVnfVupGenes, setSelectedVnfVupGenes] = useState<string[]>(defaultVnfVupModelGenes);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
@@ -160,8 +178,12 @@ export default function Home() {
     return Math.min(max, Math.max(min, Math.trunc(value)));
   }
 
-  function toggleModelGene(gene: string, checked: boolean) {
-    setSelectedVnfVupGenes((current) => {
+  function toggleModelGene(
+    gene: string,
+    checked: boolean,
+    setGenes: Dispatch<SetStateAction<string[]>>,
+  ) {
+    setGenes((current) => {
       if (checked) {
         return current.includes(gene) ? current : [...current, gene];
       }
@@ -476,6 +498,39 @@ export default function Home() {
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
   }
 
+  function summarizeNonJsonResponse(text: string) {
+    return text.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 600) || text.slice(0, 600);
+  }
+
+  async function readApiResponse(res: Response): Promise<{ data: ApiResponse; nonJson: boolean }> {
+    const text = await res.text();
+    if (!text) {
+      return {
+        data: { error: `Analysis request returned an empty response (${res.status}).` },
+        nonJson: false,
+      };
+    }
+    try {
+      return { data: JSON.parse(text) as ApiResponse, nonJson: false };
+    } catch {
+      return {
+        data: {
+          error: `Analysis service returned a non-JSON response (${res.status}).`,
+          detail: summarizeNonJsonResponse(text),
+        },
+        nonJson: true,
+      };
+    }
+  }
+
+  async function postViaApiRoute(requestBody: string) {
+    return fetch("/api/analyze", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: requestBody,
+    });
+  }
+
   async function analyze() {
     setLoading(true);
     setResponse(null);
@@ -491,13 +546,18 @@ export default function Home() {
         vnfMode: false,
         saveVnfRegionGbk: includeVnfVup && saveVnfRegionGbk,
         skipAccessoryOnlyLocalContext,
-        selectedModelGenes: includeVnfVup ? selectedVnfVupGenes : [],
+        selectedModelGenes: [
+          ...(includeAdditionalNif ? selectedAdditionalNifGenes : []),
+          ...(includeVnfVup ? selectedVnfVupGenes : []),
+        ],
       });
       let res: Response;
-      if (requestBody.length > 1_000_000) {
+      let usedDirectCompute = false;
+      if (requestBody.length > directComputeRequestThreshold) {
         const tokenRes = await fetch("/api/compute-token", { method: "POST" });
-        const tokenData = (await tokenRes.json()) as { apiUrl?: string; token?: string };
+        const { data: tokenData } = await readApiResponse(tokenRes) as { data: ApiResponse & { apiUrl?: string; token?: string }; nonJson: boolean };
         if (tokenRes.ok && tokenData.apiUrl && tokenData.token) {
+          usedDirectCompute = true;
           res = await fetch(tokenData.apiUrl, {
             method: "POST",
             headers: {
@@ -507,23 +567,16 @@ export default function Home() {
             body: requestBody,
           });
         } else {
-          res = await fetch("/api/analyze", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: requestBody,
-          });
+          res = await postViaApiRoute(requestBody);
         }
       } else {
-        res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-          body: requestBody,
-        });
+        res = await postViaApiRoute(requestBody);
       }
-      const text = await res.text();
-      const data = text
-        ? (JSON.parse(text) as ApiResponse)
-        : ({ error: `Analysis request returned an empty response (${res.status}).` } satisfies ApiResponse);
+      let { data, nonJson } = await readApiResponse(res);
+      if (usedDirectCompute && nonJson && requestBody.length <= apiRouteRetryMaxBytes) {
+        res = await postViaApiRoute(requestBody);
+        ({ data, nonJson } = await readApiResponse(res));
+      }
       if (!res.ok && !data.error) {
         setResponse({
           ...data,
@@ -717,6 +770,15 @@ export default function Home() {
             <label className="toggle-row">
               <input
                 type="checkbox"
+                checked={includeAdditionalNif}
+                onChange={(event) => setIncludeAdditionalNif(event.target.checked)}
+              />
+              Add additional nif-related detection
+              <span className="experimental-label">(experimental)</span>
+            </label>
+            <label className="toggle-row">
+              <input
+                type="checkbox"
                 checked={includeVnfVup}
                 onChange={(event) => {
                   setIncludeVnfVup(event.target.checked);
@@ -746,6 +808,41 @@ export default function Home() {
             </label>
           </div>
         </div>
+        {includeAdditionalNif ? (
+        <details className="experimental-options" open>
+          <summary>Additional nif-related target genes <span>(experimental)</span></summary>
+          <div className="experimental-options-body">
+            <p>
+              Core <em>nifHDKENB</em> models always run. Select additional available models to add to this analysis.
+            </p>
+            <div className="model-select-actions">
+              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedAdditionalNifGenes(defaultAdditionalNifModelGenes)}>
+                All select
+              </button>
+              <button type="button" className="ghost-button compact-button" onClick={() => setSelectedAdditionalNifGenes([])}>
+                Clear
+              </button>
+            </div>
+            <div className="core-gene-list" aria-label="Core models">
+              {coreModelGenes.map((gene) => (
+                <span key={gene}>{gene}</span>
+              ))}
+            </div>
+            <div className="model-checkbox-grid">
+              {additionalNifModelGenes.map((gene) => (
+                <label key={gene.id} className="toggle-row">
+                  <input
+                    type="checkbox"
+                    checked={selectedAdditionalNifGenes.includes(gene.id)}
+                    onChange={(event) => toggleModelGene(gene.id, event.target.checked, setSelectedAdditionalNifGenes)}
+                  />
+                  {gene.label}
+                </label>
+              ))}
+            </div>
+          </div>
+        </details>
+        ) : null}
         {includeVnfVup ? (
         <details className="experimental-options" open>
           <summary>Vnf/vup target genes <span>(experimental)</span></summary>
@@ -772,7 +869,7 @@ export default function Home() {
                   <input
                     type="checkbox"
                     checked={selectedVnfVupGenes.includes(gene.id)}
-                    onChange={(event) => toggleModelGene(gene.id, event.target.checked)}
+                    onChange={(event) => toggleModelGene(gene.id, event.target.checked, setSelectedVnfVupGenes)}
                   />
                   {gene.label}
                 </label>
