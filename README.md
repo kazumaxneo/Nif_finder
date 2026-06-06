@@ -144,7 +144,7 @@ similar for this protein FASTA test.
 Nif-Finder can also be used from the public web interface:
 
 - Main site: https://cyanobacterial-nif-finder.vercel.app/
-- Auxiliary site: https://web-theta-black-17.vercel.app/
+- Sub site: https://web-theta-black-17.vercel.app/
 
 <p align="center">
   <a href="https://cyanobacterial-nif-finder.vercel.app/"><img src="result8.png" alt="Nif-Finder Web interface" width="1100"></a>
