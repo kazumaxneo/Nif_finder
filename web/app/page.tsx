@@ -1212,6 +1212,12 @@ export default function Home() {
                   <a href="https://doi.org/10.64898/2026.01.15.699626" target="_blank" rel="noreferrer">
                     https://doi.org/10.64898/2026.01.15.699626
                   </a>
+                  <p className="auxiliary-site-link">
+                    Auxiliary site:{" "}
+                    <a href="https://web-theta-black-17.vercel.app" target="_blank" rel="noreferrer">
+                      https://web-theta-black-17.vercel.app
+                    </a>
+                  </p>
                   <a
                     className="github-icon-link"
                     href="https://github.com/kazumaxneo/Nif_finder"
