@@ -697,17 +697,6 @@ input:focus {
   text-decoration: underline;
 }
 
-.info-card .auxiliary-site-link {
-  color: var(--muted);
-  font-size: 14px;
-  margin-top: 12px;
-}
-
-.info-card .auxiliary-site-link a {
-  display: inline;
-  margin-top: 0;
-}
-
 .github-icon-link {
   align-items: center;
   flex: 0 0 auto;
