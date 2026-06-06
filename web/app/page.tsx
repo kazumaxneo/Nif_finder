@@ -75,6 +75,20 @@ const exampleDatasets = [
   { id: "anabaena-variabilis-atcc-29413", label: "Anabaena variabilis ATCC 29413" },
   { id: "calothrix-fragmented", label: "Calothrix strain's fragmented nif genes" },
 ];
+const demoClusterFigures: Record<string, { src: string; title: string; caption: string }> = {
+  "leptolyngbya-boryana-dg5": {
+    src: "/examples/leptolyngbya_boryana_dg5_nif_cluster.png",
+    title: "Reference nif-cluster for Leptolyngbya boryana dg5",
+    caption:
+      "Expected nif-cluster organization for the Leptolyngbya boryana dg5 demo dataset.",
+  },
+  "anabaena-variabilis-atcc-29413": {
+    src: "/examples/anabaena_variabilis_atcc_29413_nif_cluster.png",
+    title: "Reference nif-cluster for Anabaena variabilis ATCC 29413",
+    caption:
+      "Expected nif-cluster organization for the Anabaena variabilis ATCC 29413 demo dataset.",
+  },
+};
 
 const figure1Caption = (
   <>
@@ -147,6 +161,7 @@ export default function Home() {
   const [selectedVnfVupGenes, setSelectedVnfVupGenes] = useState<string[]>(defaultVnfVupModelGenes);
   const [showOnlyNifHits, setShowOnlyNifHits] = useState(false);
   const [exampleDataset, setExampleDataset] = useState("none");
+  const [submittedExampleDataset, setSubmittedExampleDataset] = useState("none");
   const [evalueThreshold, setEvalueThreshold] = useState("1e-10");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<ApiResponse | null>(null);
@@ -172,6 +187,7 @@ export default function Home() {
     });
   }, [records]);
   const totalTargetCopies = targetSummary.reduce((sum, row) => sum + row.total, 0);
+  const demoClusterFigure = records.length > 0 ? demoClusterFigures[submittedExampleDataset] : undefined;
 
   function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
@@ -534,6 +550,7 @@ export default function Home() {
   async function analyze() {
     setLoading(true);
     setResponse(null);
+    setSubmittedExampleDataset(exampleDataset);
     try {
       const requestBody = JSON.stringify({
         fasta,
@@ -595,6 +612,8 @@ export default function Home() {
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setExampleDataset("none");
+    setSubmittedExampleDataset("none");
     const reader = new FileReader();
     reader.onload = () => setFasta(String(reader.result ?? ""));
     reader.readAsText(file);
@@ -603,6 +622,8 @@ export default function Home() {
   function handleGenbankFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setExampleDataset("none");
+    setSubmittedExampleDataset("none");
     const reader = new FileReader();
     reader.onload = () => {
       setGenbank(String(reader.result ?? ""));
@@ -664,7 +685,11 @@ export default function Home() {
           Protein FASTA
           <textarea
             value={fasta}
-            onChange={(event) => setFasta(event.target.value)}
+            onChange={(event) => {
+              setFasta(event.target.value);
+              setExampleDataset("none");
+              setSubmittedExampleDataset("none");
+            }}
             spellCheck={false}
           />
         </label>
@@ -1025,9 +1050,21 @@ export default function Home() {
                   </div>
                 ) : null}
 
-                {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg ? (
+              {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg ? (
                   <p className="figure-caption">{figure2Caption}</p>
                 ) : null}
+              </div>
+            ) : null}
+
+            {demoClusterFigure ? (
+              <div className="chart-panel demo-cluster-panel">
+                <h3>{demoClusterFigure.title}</h3>
+                <img
+                  className="demo-cluster-plot"
+                  src={demoClusterFigure.src}
+                  alt={demoClusterFigure.title}
+                />
+                <p className="figure-caption">{demoClusterFigure.caption}</p>
               </div>
             ) : null}
 

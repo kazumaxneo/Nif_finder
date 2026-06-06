@@ -831,6 +831,26 @@ input:focus {
   width: 100%;
 }
 
+.demo-cluster-panel {
+  overflow-x: auto;
+}
+
+.demo-cluster-panel h3 {
+  font-size: 17px;
+  line-height: 1.25;
+  margin: 0 0 12px;
+}
+
+.demo-cluster-plot {
+  background: white;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  min-width: 720px;
+  width: 100%;
+}
+
 .table-wrap,
 .summary-table-wrap {
   overflow: auto;
