@@ -138,6 +138,20 @@ textarea {
   text-decoration: underline;
 }
 
+.brand-citation .brand-sub-site {
+  color: #b42318;
+  font-size: 14px;
+  font-weight: 650;
+  margin-top: 8px;
+}
+
+.brand-citation .brand-sub-site a {
+  color: #b42318;
+  font-weight: 650;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .top-menu {
   background: #ffffff;
   border-bottom: 1px solid #dfe5e8;

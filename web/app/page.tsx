@@ -675,7 +675,7 @@ export default function Home() {
                 </a>
               </p>
               {activeTab === "run" ? (
-                <p>
+                <p className="brand-sub-site">
                   Sub site:{" "}
                   <a href="https://web-theta-black-17.vercel.app" target="_blank" rel="noreferrer">
                     https://web-theta-black-17.vercel.app
