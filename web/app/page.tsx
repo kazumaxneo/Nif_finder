@@ -1152,7 +1152,7 @@ export default function Home() {
             </label>
             <p className="input-note cluster-note">
               Group I includes default teaching clusters from Leptolyngbya boryana dg5 and Anabaena variabilis ATCC 29413.
-              Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 30 kb or smaller.
+              Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 100 kb or smaller.
             </p>
             <div className="upload-row">
               <label className="file-button" title="Load Nif-Finder GenBank regions for clinker comparison">
