@@ -1140,13 +1140,11 @@ def cluster_regions(
         regions.extend(file_regions)
         warnings.extend(file_warnings)
     if not regions:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "No usable cluster regions were found. Upload Nif-Finder output GenBank regions "
-                f"with at least one CDS and no record longer than {MAX_CLUSTER_REGION_BP:,} bp."
-            ),
+        warnings.append(
+            "No usable cluster regions were found. Upload Nif-Finder output GenBank regions "
+            f"with at least one CDS and no record longer than {MAX_CLUSTER_REGION_BP:,} bp."
         )
+        return ClusterRegionResponse(regions=[], warnings=warnings)
     return ClusterRegionResponse(regions=regions, warnings=warnings)
 
 
