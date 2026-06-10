@@ -476,6 +476,61 @@ input:focus {
   margin: 0;
 }
 
+.cluster-controls {
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 12px;
+  padding-top: 16px;
+  width: min(720px, 100%);
+}
+
+.cluster-group-field {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.cluster-note {
+  margin-top: -4px;
+  max-width: 650px;
+}
+
+.cluster-region-picker {
+  display: grid;
+  gap: 9px;
+}
+
+.cluster-region-field {
+  color: #303b46;
+  display: grid;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  max-width: 650px;
+}
+
+.compact-notice {
+  align-items: flex-start;
+  padding: 12px;
+}
+
+.compact-notice p {
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.cluster-comparison-page {
+  display: grid;
+  gap: 16px;
+}
+
+.clinker-frame {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-height: 720px;
+  width: 100%;
+}
+
 .model-select-actions {
   display: flex;
   flex-wrap: wrap;

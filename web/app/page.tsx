@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import { AlertCircle, BookOpen, Download, FileUp, HomeIcon, Info, Play } from "lucide-react";
+import { AlertCircle, BookOpen, Download, FileUp, GitCompareArrows, HomeIcon, Info, Play } from "lucide-react";
 
 type ResultRecord = {
   query: string;
@@ -32,6 +32,39 @@ type ApiResponse = {
 type VisitCountResponse = {
   enabled?: boolean;
   count?: number;
+};
+
+type ClusterRegion = {
+  id: string;
+  fileName: string;
+  regionIndex: number;
+  recordId: string;
+  label: string;
+  lengthBp: number;
+  cdsCount: number;
+  content: string;
+};
+
+type ClusterRegionResponse = {
+  regions?: ClusterRegion[];
+  warnings?: string[];
+  error?: string;
+  detail?: string;
+};
+
+type ClusterCompareResponse = {
+  html?: string | null;
+  plotFilename?: string | null;
+  alignmentCsv?: string | null;
+  warnings?: string[];
+  error?: string;
+  detail?: string;
+};
+
+type ClusterUploadFile = {
+  id: string;
+  name: string;
+  content: string;
 };
 
 let visitCountRequested = false;
@@ -139,7 +172,7 @@ type ZipEntry = {
   data: Uint8Array;
 };
 
-type ActiveTab = "run" | "manual" | "about";
+type ActiveTab = "run" | "compare" | "manual" | "about";
 
 const navigationTabs: Array<{
   id: ActiveTab;
@@ -147,6 +180,7 @@ const navigationTabs: Array<{
   icon: typeof HomeIcon;
 }> = [
   { id: "run", label: "Run", icon: HomeIcon },
+  { id: "compare", label: "nif-cluster comparison", icon: GitCompareArrows },
   { id: "manual", label: "Manual", icon: BookOpen },
   { id: "about", label: "About", icon: Info },
 ];
@@ -173,6 +207,13 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [visitCount, setVisitCount] = useState<number | null>(null);
+  const [clusterGroup, setClusterGroup] = useState<"groupI" | "groupII">("groupI");
+  const [clusterFiles, setClusterFiles] = useState<ClusterUploadFile[]>([]);
+  const [clusterRegions, setClusterRegions] = useState<ClusterRegion[]>([]);
+  const [selectedClusterRegionIds, setSelectedClusterRegionIds] = useState<Record<string, string>>({});
+  const [clusterWarnings, setClusterWarnings] = useState<string[]>([]);
+  const [clusterLoading, setClusterLoading] = useState(false);
+  const [clusterResult, setClusterResult] = useState<ClusterCompareResponse | null>(null);
 
   const records = response?.records ?? [];
   const displayedRecords = showOnlyNifHits
@@ -219,6 +260,24 @@ export default function Home() {
     };
   }, []);
   const demoClusterFigure = records.length > 0 ? demoClusterFigures[submittedExampleDataset] : undefined;
+  const clusterRegionsByFile = useMemo(() => {
+    const grouped = new Map<string, ClusterRegion[]>();
+    for (const region of clusterRegions) {
+      const entries = grouped.get(region.fileName) ?? [];
+      entries.push(region);
+      grouped.set(region.fileName, entries);
+    }
+    return Array.from(grouped.entries());
+  }, [clusterRegions]);
+  const selectedClusterRegions = useMemo(() => {
+    return clusterRegionsByFile
+      .map(([fileName, regions]) => {
+        const selectedId = selectedClusterRegionIds[fileName];
+        return regions.find((region) => region.id === selectedId) ?? null;
+      })
+      .filter((region): region is ClusterRegion => Boolean(region));
+  }, [clusterRegionsByFile, selectedClusterRegionIds]);
+  const canRunClusterComparison = clusterFiles.length > 0 && selectedClusterRegions.length === clusterRegionsByFile.length;
 
   function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
@@ -281,6 +340,10 @@ export default function Home() {
     link.download = filename;
     link.click();
     URL.revokeObjectURL(url);
+  }
+
+  function stableFileId(file: File, index: number) {
+    return `${file.name}-${file.size}-${file.lastModified}-${index}`;
   }
 
   function resultRows(selectedRecords = displayedRecords) {
@@ -570,6 +633,21 @@ export default function Home() {
     }
   }
 
+  async function readJsonResponse<T extends { error?: string; detail?: string }>(res: Response): Promise<T> {
+    const text = await res.text();
+    if (!text) {
+      return { error: `Request returned an empty response (${res.status}).` } as T;
+    }
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return {
+        error: `Service returned a non-JSON response (${res.status}).`,
+        detail: summarizeNonJsonResponse(text),
+      } as T;
+    }
+  }
+
   async function postViaApiRoute(requestBody: string) {
     return fetch("/api/analyze", {
       method: "POST",
@@ -638,6 +716,98 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function loadClusterFiles(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []).slice(0, 5);
+    if (files.length === 0) return;
+    setClusterLoading(true);
+    setClusterResult(null);
+    setClusterWarnings([]);
+    try {
+      const loaded = await Promise.all(
+        files.map(async (file, index) => ({
+          id: stableFileId(file, index),
+          name: file.name,
+          content: await file.text(),
+        })),
+      );
+      setClusterFiles(loaded);
+      const res = await fetch("/api/cluster-regions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          files: loaded.map((file) => ({ name: file.name, content: file.content })),
+        }),
+      });
+      const data = await readJsonResponse<ClusterRegionResponse>(res);
+      if (!res.ok || data.error) {
+        setClusterRegions([]);
+        setSelectedClusterRegionIds({});
+        setClusterWarnings([data.error ?? "Could not inspect GenBank regions.", data.detail ?? ""].filter(Boolean));
+        return;
+      }
+      const regions = data.regions ?? [];
+      setClusterRegions(regions);
+      setClusterWarnings(data.warnings ?? []);
+      const nextSelected: Record<string, string> = {};
+      const grouped = new Map<string, ClusterRegion[]>();
+      for (const region of regions) {
+        grouped.set(region.fileName, [...(grouped.get(region.fileName) ?? []), region]);
+      }
+      for (const [fileName, fileRegions] of grouped.entries()) {
+        if (fileRegions.length === 1) {
+          nextSelected[fileName] = fileRegions[0].id;
+        }
+      }
+      setSelectedClusterRegionIds(nextSelected);
+    } catch (error) {
+      setClusterRegions([]);
+      setSelectedClusterRegionIds({});
+      setClusterWarnings([error instanceof Error ? error.message : "Could not read GenBank file(s)."]);
+    } finally {
+      setClusterLoading(false);
+      event.target.value = "";
+    }
+  }
+
+  function clearClusterFiles() {
+    setClusterFiles([]);
+    setClusterRegions([]);
+    setSelectedClusterRegionIds({});
+    setClusterWarnings([]);
+    setClusterResult(null);
+  }
+
+  async function runClusterComparison() {
+    setClusterLoading(true);
+    setClusterResult(null);
+    try {
+      const res = await fetch("/api/compare-clusters", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          group: clusterGroup,
+          regions: selectedClusterRegions,
+        }),
+      });
+      const data = await readJsonResponse<ClusterCompareResponse>(res);
+      setClusterResult(data);
+    } catch (error) {
+      setClusterResult({ error: error instanceof Error ? error.message : "Cluster comparison failed." });
+    } finally {
+      setClusterLoading(false);
+    }
+  }
+
+  function downloadClusterHtml() {
+    if (!clusterResult?.html) return;
+    downloadText(clusterResult.plotFilename || "nif_cluster_comparison.html", clusterResult.html, "text/html;charset=utf-8");
+  }
+
+  function downloadClusterAlignment() {
+    if (!clusterResult?.alignmentCsv) return;
+    downloadText("nif_cluster_comparison_alignments.csv", clusterResult.alignmentCsv, "text/csv;charset=utf-8");
   }
 
   function handleFile(event: ChangeEvent<HTMLInputElement>) {
@@ -969,6 +1139,82 @@ export default function Home() {
         ) : null}
           </>
         ) : null}
+
+        {activeTab === "compare" ? (
+          <div className="cluster-controls">
+            <div className="section-title">nif-cluster comparison</div>
+            <label className="field compact-field cluster-group-field">
+              Comparison group
+              <select value={clusterGroup} onChange={(event) => setClusterGroup(event.target.value as "groupI" | "groupII")}>
+                <option value="groupI">Group I nif</option>
+                <option value="groupII">Group II nif</option>
+              </select>
+            </label>
+            <p className="input-note cluster-note">
+              Group I includes default teaching clusters from Leptolyngbya boryana dg5 and Anabaena variabilis ATCC 29413.
+              Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 30 kb or smaller.
+            </p>
+            <div className="upload-row">
+              <label className="file-button" title="Load Nif-Finder GenBank regions for clinker comparison">
+                <FileUp size={18} aria-hidden />
+                <span>Load cluster GBK</span>
+                <input type="file" accept=".gb,.gbk,.gbff,.genbank,.txt" multiple onChange={loadClusterFiles} />
+              </label>
+              {clusterFiles.length > 0 ? (
+                <button className="ghost-button compact-button" type="button" onClick={clearClusterFiles}>
+                  Clear
+                </button>
+              ) : null}
+            </div>
+            <p className="input-note">
+              {clusterFiles.length > 0 ? `${clusterFiles.length} file(s) loaded.` : "No cluster GenBank loaded."}
+            </p>
+            {clusterRegionsByFile.length > 0 ? (
+              <div className="cluster-region-picker">
+                {clusterRegionsByFile.map(([fileName, regions]) => (
+                  <label key={fileName} className="cluster-region-field">
+                    {fileName}
+                    <select
+                      value={selectedClusterRegionIds[fileName] ?? ""}
+                      onChange={(event) =>
+                        setSelectedClusterRegionIds((current) => ({ ...current, [fileName]: event.target.value }))
+                      }
+                    >
+                      <option value="" disabled>
+                        Select one region
+                      </option>
+                      {regions.map((region) => (
+                        <option key={region.id} value={region.id}>
+                          region {region.regionIndex}: {region.recordId} ({region.lengthBp.toLocaleString()} bp, {region.cdsCount} CDS)
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ))}
+              </div>
+            ) : null}
+            {clusterWarnings.length > 0 ? (
+              <div className="notice compact-notice">
+                <AlertCircle size={18} aria-hidden />
+                <div>
+                  <strong>Cluster input notice.</strong>
+                  {clusterWarnings.map((warning) => (
+                    <p key={warning}>{warning}</p>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            <button
+              className="run-button"
+              type="button"
+              onClick={runClusterComparison}
+              disabled={clusterLoading || !canRunClusterComparison}
+            >
+              <GitCompareArrows size={18} aria-hidden />
+              {clusterLoading ? "Running" : "Run clinker"}
+            </button>
+          </div>
+        ) : null}
       </aside>
 
       {activeTab === "run" ? (
@@ -1159,6 +1405,65 @@ export default function Home() {
       </section>
       ) : (
         <section className="info-page">
+          {activeTab === "compare" ? (
+            <article className="manual-body cluster-comparison-page">
+              <h2>nif-cluster comparison</h2>
+              <p>
+                Compare Nif-Finder GenBank cluster regions with clinker. For Group I nif, the dg5 and ATCC29413
+                teaching clusters are added automatically; uploaded regions are compared against those references.
+              </p>
+
+              {clusterResult?.error ? (
+                <div className="notice">
+                  <AlertCircle size={20} aria-hidden />
+                  <div>
+                    <strong>{clusterResult.error}</strong>
+                    {clusterResult.detail ? <p>{clusterResult.detail}</p> : null}
+                  </div>
+                </div>
+              ) : null}
+
+              {clusterResult?.warnings?.length ? (
+                <div className="notice">
+                  <AlertCircle size={20} aria-hidden />
+                  <div>
+                    <strong>Comparison notice.</strong>
+                    {clusterResult.warnings.map((warning) => (
+                      <p key={warning}>{warning}</p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {clusterResult?.html ? (
+                <>
+                  <div className="download-row">
+                    <button className="ghost-button" type="button" onClick={downloadClusterHtml}>
+                      <Download size={16} aria-hidden />
+                      Download clinker HTML
+                    </button>
+                    {clusterResult.alignmentCsv ? (
+                      <button className="ghost-button" type="button" onClick={downloadClusterAlignment}>
+                        <Download size={16} aria-hidden />
+                        Download alignments CSV
+                      </button>
+                    ) : null}
+                  </div>
+                  <iframe
+                    className="clinker-frame"
+                    title="clinker nif-cluster comparison"
+                    sandbox="allow-scripts"
+                    srcDoc={clusterResult.html}
+                  />
+                </>
+              ) : (
+                <div className="empty-state">
+                  Upload up to 5 Nif-Finder GenBank region files, select one region per file when needed, and run clinker.
+                </div>
+              )}
+            </article>
+          ) : null}
+
           {activeTab === "manual" ? (
             <article className="manual-body">
               <h2>Manual</h2>

@@ -3,6 +3,7 @@ import hashlib
 import hmac
 import os
 import re
+import shutil
 import subprocess
 import tempfile
 import threading
@@ -26,6 +27,10 @@ NIF_FINDER_SCRIPT = NIF_FINDER_ROOT / "Nif_finderv0_30.py"
 PYTHON_BIN = os.environ.get("NIF_FINDER_PYTHON", "python")
 MAX_FASTA_BYTES = int(os.environ.get("MAX_FASTA_BYTES", str(10 * 1024 * 1024)))
 MAX_GENBANK_BYTES = int(os.environ.get("MAX_GENBANK_BYTES", str(30 * 1024 * 1024)))
+MAX_CLUSTER_GENBANK_BYTES = int(os.environ.get("MAX_CLUSTER_GENBANK_BYTES", str(3 * 1024 * 1024)))
+MAX_CLUSTER_REGION_BP = int(os.environ.get("MAX_CLUSTER_REGION_BP", "30000"))
+MAX_CLUSTER_UPLOADS = int(os.environ.get("MAX_CLUSTER_UPLOADS", "5"))
+CLINKER_TIMEOUT_SECONDS = int(os.environ.get("CLINKER_TIMEOUT_SECONDS", "180"))
 REQUEST_TIMEOUT_SECONDS = max(600, int(os.environ.get("REQUEST_TIMEOUT_SECONDS", "600")))
 MAX_CONCURRENT_ANALYSES = int(os.environ.get("MAX_CONCURRENT_ANALYSES", "4"))
 QUEUE_WAIT_SECONDS = int(os.environ.get("QUEUE_WAIT_SECONDS", "0"))
@@ -89,6 +94,13 @@ LOCAL_CONTEXT_PADDING = int(os.environ.get("LOCAL_CONTEXT_PADDING", "10000"))
 LOCAL_CONTEXT_MERGE_DISTANCE = int(os.environ.get("LOCAL_CONTEXT_MERGE_DISTANCE", "20000"))
 OVERVIEW_HIDE_COVERAGE = float(os.environ.get("OVERVIEW_HIDE_COVERAGE", "0.5"))
 TRACK_LINE_KWS = {"color": "#20242a", "lw": 0.45, "zorder": 0}
+CLUSTER_TEMPLATE_DIR = Path(__file__).resolve().parent / "cluster_templates"
+
+
+GROUP_I_CLUSTER_TEMPLATES = [
+    ("Leptolyngbya boryana dg5 nif cluster", CLUSTER_TEMPLATE_DIR / "groupI_leptolyngbya_boryana_dg5_nif_cluster.gbk"),
+    ("Anabaena variabilis ATCC 29413 nif cluster", CLUSTER_TEMPLATE_DIR / "groupI_anabaena_variabilis_atcc29413_nif_cluster.gbk"),
+]
 
 
 class AnalyzeRequest(BaseModel):
@@ -103,6 +115,45 @@ class AnalyzeRequest(BaseModel):
     saveVnfRegionGbk: bool = False
     skipAccessoryOnlyLocalContext: bool = True
     selectedModelGenes: list[str] | None = None
+
+
+class ClusterGenbankInput(BaseModel):
+    name: str = Field(..., min_length=1, max_length=180)
+    content: str = Field(..., min_length=1)
+
+
+class ClusterRegionRequest(BaseModel):
+    files: list[ClusterGenbankInput] = Field(..., min_length=1, max_length=MAX_CLUSTER_UPLOADS)
+
+
+class ClusterRegion(BaseModel):
+    id: str
+    fileName: str
+    regionIndex: int
+    recordId: str
+    label: str
+    lengthBp: int
+    cdsCount: int
+    content: str
+
+
+class ClusterRegionResponse(BaseModel):
+    regions: list[ClusterRegion]
+    warnings: list[str] = []
+    runner: str = "nif-finder-compute"
+
+
+class ClusterCompareRequest(BaseModel):
+    group: str = Field(default="groupI")
+    regions: list[ClusterRegion] = Field(default_factory=list, max_length=MAX_CLUSTER_UPLOADS)
+
+
+class ClusterCompareResponse(BaseModel):
+    html: str | None = None
+    plotFilename: str | None = None
+    alignmentCsv: str | None = None
+    warnings: list[str] = []
+    runner: str = "nif-finder-compute"
 
 
 class ResultRecord(BaseModel):
@@ -215,6 +266,177 @@ def validate_genbank(genbank: str | None) -> str | None:
     if len(genbank.encode("utf-8")) > MAX_GENBANK_BYTES:
         raise HTTPException(status_code=413, detail=f"GenBank input exceeds {MAX_GENBANK_BYTES} bytes.")
     return genbank + "\n"
+
+
+def validate_api_access(x_api_key: str | None, x_analysis_token: str | None = None) -> None:
+    api_key_valid = bool(NIF_FINDER_API_KEY and hmac.compare_digest(x_api_key or "", NIF_FINDER_API_KEY))
+    token_valid = validate_analysis_token(x_analysis_token)
+    if NIF_FINDER_API_KEY and not (api_key_valid or token_valid):
+        raise HTTPException(status_code=401, detail="Invalid or missing API key.")
+
+
+def sanitize_cluster_filename(name: str, suffix: str = ".gbk") -> str:
+    stem = Path(name).stem
+    safe = "".join(char if char.isalnum() or char in "._-" else "_" for char in stem)
+    safe = "_".join(part for part in safe.split("_") if part)
+    return f"{safe or 'cluster'}{suffix}"
+
+
+def validate_cluster_genbank_bytes(name: str, content: str) -> str:
+    content = content.strip()
+    if not content:
+        raise HTTPException(status_code=400, detail=f"{name} is empty.")
+    byte_count = len(content.encode("utf-8"))
+    if byte_count > MAX_CLUSTER_GENBANK_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=(
+                f"{name} is too large for cluster comparison. Upload a Nif-Finder region GenBank "
+                f"rather than a genome-wide GenBank file."
+            ),
+        )
+    return content + "\n"
+
+
+def genbank_record_to_text(record: Any) -> str:
+    output = StringIO()
+    SeqIO.write([record], output, "genbank")
+    return output.getvalue()
+
+
+def cluster_region_label(file_name: str, index: int, record: Any, length_bp: int, cds_count: int) -> str:
+    record_name = record.id or record.name or f"region_{index}"
+    description = (record.description or "").strip()
+    if description and description != record_name:
+        return f"{Path(file_name).name} region {index}: {record_name} ({length_bp:,} bp, {cds_count} CDS)"
+    return f"{Path(file_name).name} region {index}: {record_name} ({length_bp:,} bp, {cds_count} CDS)"
+
+
+def extract_cluster_regions_from_genbank(file_name: str, content: str) -> tuple[list[ClusterRegion], list[str]]:
+    genbank = validate_cluster_genbank_bytes(file_name, content)
+    try:
+        records = list(SeqIO.parse(StringIO(genbank), "genbank"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not parse {file_name} as GenBank: {exc}") from exc
+    if not records:
+        raise HTTPException(status_code=400, detail=f"No GenBank records were found in {file_name}.")
+
+    regions: list[ClusterRegion] = []
+    warnings: list[str] = []
+    for index, record in enumerate(records, start=1):
+        length_bp = len(record.seq)
+        cds_count = sum(1 for feature in record.features if feature.type == "CDS")
+        record_name = record.id or record.name or f"region_{index}"
+        if length_bp > MAX_CLUSTER_REGION_BP:
+            warnings.append(
+                f"{Path(file_name).name} region {index} ({record_name}) is {length_bp:,} bp and was skipped; "
+                f"the comparison limit is {MAX_CLUSTER_REGION_BP:,} bp per region."
+            )
+            continue
+        if cds_count == 0:
+            warnings.append(f"{Path(file_name).name} region {index} ({record_name}) has no CDS features and was skipped.")
+            continue
+        region_id = hashlib.sha256(f"{file_name}:{index}:{record_name}:{length_bp}".encode("utf-8")).hexdigest()[:16]
+        regions.append(
+            ClusterRegion(
+                id=region_id,
+                fileName=Path(file_name).name,
+                regionIndex=index,
+                recordId=record_name,
+                label=cluster_region_label(file_name, index, record, length_bp, cds_count),
+                lengthBp=length_bp,
+                cdsCount=cds_count,
+                content=genbank_record_to_text(record),
+            )
+        )
+    return regions, warnings
+
+
+def selected_template_regions(group: str) -> tuple[list[ClusterRegion], list[str]]:
+    if group != "groupI":
+        return [], ["No default teaching clusters are configured for Group II yet; only uploaded regions were compared."]
+
+    regions: list[ClusterRegion] = []
+    warnings: list[str] = []
+    for label, path in GROUP_I_CLUSTER_TEMPLATES:
+        if not path.is_file():
+            warnings.append(f"Default teaching cluster is missing: {path.name}.")
+            continue
+        template_regions, template_warnings = extract_cluster_regions_from_genbank(path.name, path.read_text(encoding="utf-8"))
+        warnings.extend(template_warnings)
+        for region in template_regions:
+            regions.append(region.model_copy(update={"fileName": label, "label": label}))
+    return regions, warnings
+
+
+def run_clinker(group: str, user_regions: list[ClusterRegion]) -> ClusterCompareResponse:
+    if group not in {"groupI", "groupII"}:
+        raise HTTPException(status_code=400, detail="comparison group must be groupI or groupII.")
+    if len(user_regions) > MAX_CLUSTER_UPLOADS:
+        raise HTTPException(status_code=400, detail=f"Upload at most {MAX_CLUSTER_UPLOADS} GenBank regions.")
+
+    template_regions, warnings = selected_template_regions(group)
+    regions = [*template_regions, *user_regions]
+    if len(regions) < 2:
+        raise HTTPException(status_code=400, detail="At least two cluster regions are required for clinker comparison.")
+
+    clinker_bin = shutil.which("clinker")
+    if not clinker_bin:
+        raise HTTPException(status_code=503, detail="clinker is not installed on the compute server.")
+
+    with tempfile.TemporaryDirectory(prefix="nif-finder-clinker-") as tmp:
+        tmp_dir = Path(tmp)
+        input_paths: list[Path] = []
+        for index, region in enumerate(regions, start=1):
+            if region.lengthBp > MAX_CLUSTER_REGION_BP:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{region.label} exceeds the {MAX_CLUSTER_REGION_BP:,} bp comparison limit.",
+                )
+            file_path = tmp_dir / f"{index:02d}_{sanitize_cluster_filename(region.fileName)}"
+            file_path.write_text(validate_cluster_genbank_bytes(region.fileName, region.content), encoding="utf-8")
+            input_paths.append(file_path)
+
+        plot_path = tmp_dir / "nif_cluster_comparison.html"
+        alignment_path = tmp_dir / "nif_cluster_comparison_alignments.csv"
+        command = [
+            clinker_bin,
+            *(str(path) for path in input_paths),
+            "-p",
+            str(plot_path),
+            "-o",
+            str(alignment_path),
+            "-dl",
+            ",",
+            "-j",
+            "1",
+            "-f",
+        ]
+        try:
+            completed = subprocess.run(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=CLINKER_TIMEOUT_SECONDS,
+                check=True,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise HTTPException(status_code=504, detail=f"clinker timed out after {CLINKER_TIMEOUT_SECONDS}s.") from exc
+        except subprocess.CalledProcessError as exc:
+            detail = exc.stderr.strip() or exc.stdout.strip() or str(exc)
+            raise HTTPException(status_code=500, detail=f"clinker failed: {detail}") from exc
+
+        if not plot_path.is_file():
+            output = "\n".join(part for part in [completed.stdout.strip(), completed.stderr.strip()] if part)
+            raise HTTPException(status_code=500, detail=output or "clinker did not produce an HTML plot.")
+
+        return ClusterCompareResponse(
+            html=plot_path.read_text(encoding="utf-8"),
+            plotFilename="nif_cluster_comparison.html",
+            alignmentCsv=alignment_path.read_text(encoding="utf-8") if alignment_path.is_file() else None,
+            warnings=warnings,
+        )
 
 
 def reference_name_for_model_gene(gene: str) -> str:
@@ -899,8 +1121,43 @@ def health() -> dict[str, str | bool | int]:
         "nifFinderRoot": str(NIF_FINDER_ROOT),
         "nifFinderDb": str(NIF_FINDER_DB),
         "matplotlib": matplotlib_available,
+        "clinker": shutil.which("clinker") is not None,
         "requestTimeoutSeconds": REQUEST_TIMEOUT_SECONDS,
     }
+
+
+@app.post("/cluster-regions", response_model=ClusterRegionResponse)
+def cluster_regions(
+    request: ClusterRegionRequest,
+    x_api_key: str | None = Header(default=None),
+    x_analysis_token: str | None = Header(default=None),
+) -> ClusterRegionResponse:
+    validate_api_access(x_api_key, x_analysis_token)
+    regions: list[ClusterRegion] = []
+    warnings: list[str] = []
+    for file in request.files:
+        file_regions, file_warnings = extract_cluster_regions_from_genbank(file.name, file.content)
+        regions.extend(file_regions)
+        warnings.extend(file_warnings)
+    if not regions:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "No usable cluster regions were found. Upload Nif-Finder output GenBank regions "
+                f"with at least one CDS and no record longer than {MAX_CLUSTER_REGION_BP:,} bp."
+            ),
+        )
+    return ClusterRegionResponse(regions=regions, warnings=warnings)
+
+
+@app.post("/compare-clusters", response_model=ClusterCompareResponse)
+def compare_clusters(
+    request: ClusterCompareRequest,
+    x_api_key: str | None = Header(default=None),
+    x_analysis_token: str | None = Header(default=None),
+) -> ClusterCompareResponse:
+    validate_api_access(x_api_key, x_analysis_token)
+    return run_clinker(request.group, request.regions)
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)
@@ -909,10 +1166,7 @@ def analyze(
     x_api_key: str | None = Header(default=None),
     x_analysis_token: str | None = Header(default=None),
 ) -> AnalyzeResponse:
-    api_key_valid = bool(NIF_FINDER_API_KEY and hmac.compare_digest(x_api_key or "", NIF_FINDER_API_KEY))
-    token_valid = validate_analysis_token(x_analysis_token)
-    if NIF_FINDER_API_KEY and not (api_key_valid or token_valid):
-        raise HTTPException(status_code=401, detail="Invalid or missing API key.")
+    validate_api_access(x_api_key, x_analysis_token)
 
     fasta = validate_fasta(request.fasta)
     genbank = validate_genbank(request.genbank)
