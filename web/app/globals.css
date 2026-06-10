@@ -152,6 +152,13 @@ textarea {
   text-underline-offset: 2px;
 }
 
+.brand-citation .brand-visit-counter {
+  color: #111827;
+  font-size: 14px;
+  font-weight: 800;
+  margin-top: 4px;
+}
+
 .top-menu {
   background: #ffffff;
   border-bottom: 1px solid #dfe5e8;

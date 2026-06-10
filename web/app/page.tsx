@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, Dispatch, SetStateAction, useMemo, useState } from "react";
+import { ChangeEvent, Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import { AlertCircle, BookOpen, Download, FileUp, HomeIcon, Info, Play } from "lucide-react";
 
 type ResultRecord = {
@@ -28,6 +28,13 @@ type ApiResponse = {
   detail?: string;
   sequenceCount?: number;
 };
+
+type VisitCountResponse = {
+  enabled?: boolean;
+  count?: number;
+};
+
+let visitCountRequested = false;
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
 const vnfGenes = ["vnfH/nifH", "vnfD", "vnfK", "vnfE/nifE", "vnfN/nifN", "vnfG", "vnfDG"];
@@ -165,6 +172,7 @@ export default function Home() {
   const [evalueThreshold, setEvalueThreshold] = useState("1e-10");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState<ApiResponse | null>(null);
+  const [visitCount, setVisitCount] = useState<number | null>(null);
 
   const records = response?.records ?? [];
   const displayedRecords = showOnlyNifHits
@@ -187,6 +195,29 @@ export default function Home() {
     });
   }, [records]);
   const totalTargetCopies = targetSummary.reduce((sum, row) => sum + row.total, 0);
+
+  useEffect(() => {
+    if (visitCountRequested) return;
+    visitCountRequested = true;
+    let cancelled = false;
+
+    fetch("/api/visit-count", { method: "POST", cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: VisitCountResponse | null) => {
+        if (!cancelled && data?.enabled && typeof data.count === "number") {
+          setVisitCount(data.count);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setVisitCount(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const demoClusterFigure = records.length > 0 ? demoClusterFigures[submittedExampleDataset] : undefined;
 
   function clampNumber(value: number, min: number, max: number) {
@@ -675,12 +706,17 @@ export default function Home() {
                 </a>
               </p>
               {activeTab === "run" ? (
-                <p className="brand-sub-site">
-                  Sub site:{" "}
-                  <a href="https://web-theta-black-17.vercel.app" target="_blank" rel="noreferrer">
-                    https://web-theta-black-17.vercel.app
-                  </a>
-                </p>
+                <>
+                  <p className="brand-sub-site">
+                    Sub site:{" "}
+                    <a href="https://web-theta-black-17.vercel.app" target="_blank" rel="noreferrer">
+                      https://web-theta-black-17.vercel.app
+                    </a>
+                  </p>
+                  {visitCount !== null ? (
+                    <p className="brand-visit-counter">Total visits: {visitCount.toLocaleString()}</p>
+                  ) : null}
+                </>
               ) : null}
             </div>
           </div>
