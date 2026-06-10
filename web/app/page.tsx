@@ -1492,7 +1492,7 @@ export default function Home() {
                   <div className="download-row">
                     <button className="ghost-button" type="button" onClick={downloadClusterHtml}>
                       <Download size={16} aria-hidden />
-                      Download clinker HTML
+                      Download interactive clinker HTML
                     </button>
                     {clusterResult.alignmentCsv ? (
                       <button className="ghost-button" type="button" onClick={downloadClusterAlignment}>
@@ -1501,10 +1501,14 @@ export default function Home() {
                       </button>
                     ) : null}
                   </div>
+                  <p className="input-note cluster-download-note">
+                    The embedded clinker Save SVG button is enabled. If your browser still blocks it, download the
+                    interactive clinker HTML and open it directly, then use Save SVG there.
+                  </p>
                   <iframe
                     className="clinker-frame"
                     title="clinker nif-cluster comparison"
-                    sandbox="allow-scripts"
+                    sandbox="allow-scripts allow-downloads"
                     srcDoc={clusterResult.html}
                   />
                   <div className="software-citations cluster-citation">

@@ -580,6 +580,10 @@ input:focus {
   padding-top: 8px;
 }
 
+.cluster-download-note {
+  margin-top: -8px;
+}
+
 .clinker-frame {
   background: #ffffff;
   border: 1px solid var(--line);
