@@ -1195,9 +1195,12 @@ export default function Home() {
                     <span className="cluster-slot-number">{slotIndex + 1}</span>
                     <label className="file-button cluster-file-button" title="Load a Nif-Finder GenBank region for clinker comparison">
                       <FileUp size={18} aria-hidden />
-                      <span>{file ? file.name : "Load cluster GBK"}</span>
+                      <span>GBK</span>
                       <input type="file" accept=".gb,.gbk,.gbff,.genbank,.txt" onChange={(event) => loadClusterFile(event, slotIndex)} />
                     </label>
+                    <span className="cluster-file-name" title={file?.name ?? ""}>
+                      {file ? file.name : "No file"}
+                    </span>
                     <select
                       className="cluster-region-select"
                       value={file ? selectedClusterRegionIds[file.uploadName] ?? "" : ""}
@@ -1449,7 +1452,7 @@ export default function Home() {
         </footer>
       </section>
       ) : (
-        <section className="info-page">
+        <section className={activeTab === "compare" && clusterResult?.html ? "info-page wide-clinker-page" : "info-page"}>
           {activeTab === "compare" ? (
             <article className="manual-body cluster-comparison-page">
               <h2>nif-cluster comparison</h2>
@@ -1500,6 +1503,18 @@ export default function Home() {
                     sandbox="allow-scripts"
                     srcDoc={clusterResult.html}
                   />
+                  <div className="software-citations cluster-citation">
+                    <p>clinker citation:</p>
+                    <ul>
+                      <li>
+                        Gilchrist CLM, Chooi YH. clinker &amp; clustermap.js: automatic generation of gene cluster
+                        comparison figures. <em>Bioinformatics</em>. 2021.{" "}
+                        <a href="https://doi.org/10.1093/bioinformatics/btab007" target="_blank" rel="noreferrer">
+                          doi:10.1093/bioinformatics/btab007
+                        </a>
+                      </li>
+                    </ul>
+                  </div>
                 </>
               ) : (
                 <div className="empty-state">
