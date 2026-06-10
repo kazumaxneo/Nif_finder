@@ -63,7 +63,9 @@ type ClusterCompareResponse = {
 
 type ClusterUploadFile = {
   id: string;
+  slotIndex: number;
   name: string;
+  uploadName: string;
   content: string;
 };
 
@@ -107,6 +109,7 @@ const defaultVnfVupModelGenes = vnfVupModelGenes.map((gene) => gene.id);
 const maxJobs = 4;
 const maxCpu = 12;
 const maxContextPaddingKb = 30;
+const maxClusterUploads = 5;
 const directComputeRequestThreshold = 1_000_000;
 const apiRouteRetryMaxBytes = 4_000_000;
 const exampleDatasets = [
@@ -211,7 +214,7 @@ export default function Home() {
   const [clusterFiles, setClusterFiles] = useState<ClusterUploadFile[]>([]);
   const [clusterRegions, setClusterRegions] = useState<ClusterRegion[]>([]);
   const [selectedClusterRegionIds, setSelectedClusterRegionIds] = useState<Record<string, string>>({});
-  const [clusterWarnings, setClusterWarnings] = useState<string[]>([]);
+  const [clusterSlotWarnings, setClusterSlotWarnings] = useState<Record<number, string[]>>({});
   const [clusterLoading, setClusterLoading] = useState(false);
   const [clusterResult, setClusterResult] = useState<ClusterCompareResponse | null>(null);
 
@@ -260,24 +263,18 @@ export default function Home() {
     };
   }, []);
   const demoClusterFigure = records.length > 0 ? demoClusterFigures[submittedExampleDataset] : undefined;
-  const clusterRegionsByFile = useMemo(() => {
-    const grouped = new Map<string, ClusterRegion[]>();
-    for (const region of clusterRegions) {
-      const entries = grouped.get(region.fileName) ?? [];
-      entries.push(region);
-      grouped.set(region.fileName, entries);
-    }
-    return Array.from(grouped.entries());
-  }, [clusterRegions]);
+  const clusterSlots = useMemo(() => Array.from({ length: maxClusterUploads }, (_, index) => index), []);
+  const clusterWarnings = useMemo(() => Object.values(clusterSlotWarnings).flat(), [clusterSlotWarnings]);
   const selectedClusterRegions = useMemo(() => {
-    return clusterRegionsByFile
-      .map(([fileName, regions]) => {
-        const selectedId = selectedClusterRegionIds[fileName];
+    return clusterFiles
+      .map((file) => {
+        const selectedId = selectedClusterRegionIds[file.uploadName];
+        const regions = clusterRegions.filter((region) => region.fileName === file.uploadName);
         return regions.find((region) => region.id === selectedId) ?? null;
       })
       .filter((region): region is ClusterRegion => Boolean(region));
-  }, [clusterRegionsByFile, selectedClusterRegionIds]);
-  const canRunClusterComparison = clusterFiles.length > 0 && selectedClusterRegions.length === clusterRegionsByFile.length;
+  }, [clusterFiles, clusterRegions, selectedClusterRegionIds]);
+  const canRunClusterComparison = clusterFiles.length > 0 && selectedClusterRegions.length === clusterFiles.length;
 
   function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
@@ -718,64 +715,99 @@ export default function Home() {
     }
   }
 
-  async function loadClusterFiles(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).slice(0, 5);
-    if (files.length === 0) return;
+  function clusterUploadName(slotIndex: number, fileName: string) {
+    return `slot_${slotIndex + 1}_${fileName.replace(/[^\w.-]+/g, "_")}`;
+  }
+
+  async function loadClusterFile(event: ChangeEvent<HTMLInputElement>, slotIndex: number) {
+    const file = event.target.files?.[0];
+    if (!file) return;
     setClusterLoading(true);
     setClusterResult(null);
-    setClusterWarnings([]);
     try {
-      const loaded = await Promise.all(
-        files.map(async (file, index) => ({
-          id: stableFileId(file, index),
-          name: file.name,
-          content: await file.text(),
-        })),
-      );
-      setClusterFiles(loaded);
+      const uploadName = clusterUploadName(slotIndex, file.name);
+      const loaded: ClusterUploadFile = {
+        id: stableFileId(file, slotIndex),
+        slotIndex,
+        name: file.name,
+        uploadName,
+        content: await file.text(),
+      };
       const res = await fetch("/api/cluster-regions", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          files: loaded.map((file) => ({ name: file.name, content: file.content })),
+          files: [{ name: loaded.uploadName, content: loaded.content }],
         }),
       });
       const data = await readJsonResponse<ClusterRegionResponse>(res);
       if (!res.ok || data.error) {
-        setClusterRegions([]);
-        setSelectedClusterRegionIds({});
-        setClusterWarnings([data.error ?? "Could not inspect GenBank regions.", data.detail ?? ""].filter(Boolean));
+        setClusterFiles((current) => current.filter((item) => item.slotIndex !== slotIndex));
+        setClusterRegions((current) => current.filter((region) => region.fileName !== uploadName));
+        setSelectedClusterRegionIds((current) => {
+          const next = { ...current };
+          delete next[uploadName];
+          return next;
+        });
+        setClusterSlotWarnings((current) => ({
+          ...current,
+          [slotIndex]: [data.error ?? "Could not inspect GenBank regions.", data.detail ?? ""].filter(Boolean),
+        }));
         return;
       }
       const regions = data.regions ?? [];
-      setClusterRegions(regions);
-      setClusterWarnings(data.warnings ?? []);
-      const nextSelected: Record<string, string> = {};
-      const grouped = new Map<string, ClusterRegion[]>();
-      for (const region of regions) {
-        grouped.set(region.fileName, [...(grouped.get(region.fileName) ?? []), region]);
-      }
-      for (const [fileName, fileRegions] of grouped.entries()) {
-        if (fileRegions.length === 1) {
-          nextSelected[fileName] = fileRegions[0].id;
+      setClusterFiles((current) =>
+        [...current.filter((item) => item.slotIndex !== slotIndex), loaded].sort((a, b) => a.slotIndex - b.slotIndex),
+      );
+      setClusterRegions((current) => [
+        ...current.filter((region) => region.fileName !== uploadName),
+        ...regions,
+      ]);
+      setSelectedClusterRegionIds((current) => {
+        const next = { ...current };
+        delete next[uploadName];
+        if (regions.length === 1) {
+          next[uploadName] = regions[0].id;
         }
-      }
-      setSelectedClusterRegionIds(nextSelected);
+        return next;
+      });
+      setClusterSlotWarnings((current) => ({ ...current, [slotIndex]: data.warnings ?? [] }));
     } catch (error) {
-      setClusterRegions([]);
-      setSelectedClusterRegionIds({});
-      setClusterWarnings([error instanceof Error ? error.message : "Could not read GenBank file(s)."]);
+      setClusterFiles((current) => current.filter((item) => item.slotIndex !== slotIndex));
+      setClusterSlotWarnings((current) => ({
+        ...current,
+        [slotIndex]: [error instanceof Error ? error.message : "Could not read GenBank file."],
+      }));
     } finally {
       setClusterLoading(false);
       event.target.value = "";
     }
   }
 
+  function clearClusterFile(slotIndex: number) {
+    const file = clusterFiles.find((item) => item.slotIndex === slotIndex);
+    setClusterFiles((current) => current.filter((item) => item.slotIndex !== slotIndex));
+    if (file) {
+      setClusterRegions((current) => current.filter((region) => region.fileName !== file.uploadName));
+      setSelectedClusterRegionIds((current) => {
+        const next = { ...current };
+        delete next[file.uploadName];
+        return next;
+      });
+    }
+    setClusterSlotWarnings((current) => {
+      const next = { ...current };
+      delete next[slotIndex];
+      return next;
+    });
+    setClusterResult(null);
+  }
+
   function clearClusterFiles() {
     setClusterFiles([]);
     setClusterRegions([]);
     setSelectedClusterRegionIds({});
-    setClusterWarnings([]);
+    setClusterSlotWarnings({});
     setClusterResult(null);
   }
 
@@ -1154,34 +1186,31 @@ export default function Home() {
               Group I includes default teaching clusters from Leptolyngbya boryana dg5 and Anabaena variabilis ATCC 29413.
               Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 100 kb or smaller.
             </p>
-            <div className="upload-row">
-              <label className="file-button" title="Load Nif-Finder GenBank regions for clinker comparison">
-                <FileUp size={18} aria-hidden />
-                <span>Load cluster GBK</span>
-                <input type="file" accept=".gb,.gbk,.gbff,.genbank,.txt" multiple onChange={loadClusterFiles} />
-              </label>
-              {clusterFiles.length > 0 ? (
-                <button className="ghost-button compact-button" type="button" onClick={clearClusterFiles}>
-                  Clear
-                </button>
-              ) : null}
-            </div>
-            <p className="input-note">
-              {clusterFiles.length > 0 ? `${clusterFiles.length} file(s) loaded.` : "No cluster GenBank loaded."}
-            </p>
-            {clusterRegionsByFile.length > 0 ? (
-              <div className="cluster-region-picker">
-                {clusterRegionsByFile.map(([fileName, regions]) => (
-                  <label key={fileName} className="cluster-region-field">
-                    {fileName}
+            <div className="cluster-slot-list">
+              {clusterSlots.map((slotIndex) => {
+                const file = clusterFiles.find((item) => item.slotIndex === slotIndex);
+                const regions = file ? clusterRegions.filter((region) => region.fileName === file.uploadName) : [];
+                return (
+                  <div className="cluster-slot-row" key={slotIndex}>
+                    <span className="cluster-slot-number">{slotIndex + 1}</span>
+                    <label className="file-button cluster-file-button" title="Load a Nif-Finder GenBank region for clinker comparison">
+                      <FileUp size={18} aria-hidden />
+                      <span>{file ? file.name : "Load cluster GBK"}</span>
+                      <input type="file" accept=".gb,.gbk,.gbff,.genbank,.txt" onChange={(event) => loadClusterFile(event, slotIndex)} />
+                    </label>
                     <select
-                      value={selectedClusterRegionIds[fileName] ?? ""}
+                      className="cluster-region-select"
+                      value={file ? selectedClusterRegionIds[file.uploadName] ?? "" : ""}
                       onChange={(event) =>
-                        setSelectedClusterRegionIds((current) => ({ ...current, [fileName]: event.target.value }))
+                        file
+                          ? setSelectedClusterRegionIds((current) => ({ ...current, [file.uploadName]: event.target.value }))
+                          : undefined
                       }
+                      disabled={!file || regions.length === 0}
+                      aria-label={`Select region for cluster GBK ${slotIndex + 1}`}
                     >
-                      <option value="" disabled>
-                        Select one region
+                      <option value="">
+                        {file ? "Select one region" : "No file loaded"}
                       </option>
                       {regions.map((region) => (
                         <option key={region.id} value={region.id}>
@@ -1189,10 +1218,26 @@ export default function Home() {
                         </option>
                       ))}
                     </select>
-                  </label>
-                ))}
-              </div>
+                    <button
+                      className="ghost-button compact-button cluster-clear-button"
+                      type="button"
+                      onClick={() => clearClusterFile(slotIndex)}
+                      disabled={!file}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            {clusterFiles.length > 0 ? (
+              <button className="ghost-button compact-button cluster-clear-all-button" type="button" onClick={clearClusterFiles}>
+                Clear all
+              </button>
             ) : null}
+            <p className="input-note">
+              {clusterFiles.length > 0 ? `${clusterFiles.length} file(s) loaded.` : "No cluster GenBank loaded."}
+            </p>
             {clusterWarnings.length > 0 ? (
               <div className="notice compact-notice">
                 <AlertCircle size={18} aria-hidden />

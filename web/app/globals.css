@@ -53,7 +53,7 @@ textarea {
   flex-direction: column;
   gap: 16px;
   margin: 0 auto;
-  max-width: 960px;
+  max-width: 1260px;
   padding: 0;
   width: 100%;
 }
@@ -108,7 +108,7 @@ textarea {
   font-size: 18px;
   line-height: 1.55;
   margin: 14px 0 0;
-  max-width: 790px;
+  max-width: 1090px;
 }
 
 .brand-citation {
@@ -125,7 +125,7 @@ textarea {
   font-size: inherit;
   line-height: inherit;
   margin: 4px 0;
-  max-width: 860px;
+  max-width: 1160px;
 }
 
 .brand-citation a {
@@ -166,7 +166,7 @@ textarea {
   flex-direction: column;
   gap: 8px;
   margin: 0 auto 2px;
-  max-width: 960px;
+  max-width: 1260px;
   padding: 0 0 1px;
   width: 100%;
 }
@@ -481,7 +481,7 @@ input:focus {
   display: grid;
   gap: 12px;
   padding-top: 16px;
-  width: min(720px, 100%);
+  width: min(1040px, 100%);
 }
 
 .cluster-group-field {
@@ -491,21 +491,57 @@ input:focus {
 
 .cluster-note {
   margin-top: -4px;
-  max-width: 650px;
+  max-width: 950px;
 }
 
-.cluster-region-picker {
+.cluster-slot-list {
   display: grid;
-  gap: 9px;
+  gap: 8px;
+  max-width: 1040px;
 }
 
-.cluster-region-field {
-  color: #303b46;
+.cluster-slot-row {
+  align-items: center;
   display: grid;
+  gap: 8px;
+  grid-template-columns: 22px minmax(210px, 300px) minmax(330px, 1fr) 78px;
+  min-height: 38px;
+}
+
+.cluster-slot-number {
+  color: #5d6875;
   font-size: 12px;
-  font-weight: 700;
-  gap: 6px;
-  max-width: 650px;
+  font-weight: 800;
+  text-align: right;
+}
+
+.cluster-file-button {
+  min-width: 0;
+  width: 100%;
+}
+
+.cluster-file-button span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cluster-region-select {
+  min-height: 36px;
+  min-width: 0;
+}
+
+.cluster-clear-button {
+  width: 78px;
+}
+
+.cluster-clear-button:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.cluster-clear-all-button {
+  justify-self: flex-start;
 }
 
 .compact-notice {
@@ -614,7 +650,7 @@ input:focus {
   flex-direction: column;
   gap: 18px;
   margin: 0 auto;
-  max-width: 1180px;
+  max-width: 1480px;
   min-width: 0;
   padding: 0;
   width: 100%;
@@ -625,7 +661,7 @@ input:focus {
   flex-direction: column;
   gap: 18px;
   margin: 0 auto;
-  max-width: 960px;
+  max-width: 1260px;
   width: 100%;
 }
 
@@ -648,7 +684,7 @@ input:focus {
   font-size: 15px;
   line-height: 1.55;
   margin: 10px 0 0;
-  max-width: 780px;
+  max-width: 1080px;
 }
 
 .manual-body {
@@ -1041,6 +1077,14 @@ th {
 
   .top-tab {
     flex: 0 0 auto;
+  }
+
+  .cluster-slot-row {
+    grid-template-columns: 22px minmax(0, 1fr) 78px;
+  }
+
+  .cluster-region-select {
+    grid-column: 2 / 4;
   }
 
   .info-grid {
