@@ -102,6 +102,10 @@ GROUP_I_CLUSTER_TEMPLATES = [
     ("Anabaena variabilis ATCC 29413 nif cluster", CLUSTER_TEMPLATE_DIR / "groupI_anabaena_variabilis_atcc29413_nif_cluster.gbk"),
 ]
 
+GROUP_II_CLUSTER_TEMPLATES = [
+    ("Sodalinema sp. AB48 soda lake nif cluster", CLUSTER_TEMPLATE_DIR / "groupII_sodalinema_sp_ab48_soda_lake_nif_cluster.gbk"),
+]
+
 
 class AnalyzeRequest(BaseModel):
     fasta: str = Field(..., min_length=1)
@@ -353,12 +357,16 @@ def extract_cluster_regions_from_genbank(file_name: str, content: str) -> tuple[
 
 
 def selected_template_regions(group: str) -> tuple[list[ClusterRegion], list[str]]:
-    if group != "groupI":
-        return [], ["No default teaching clusters are configured for Group II yet; only uploaded regions were compared."]
+    if group == "groupI":
+        templates = GROUP_I_CLUSTER_TEMPLATES
+    elif group == "groupII":
+        templates = GROUP_II_CLUSTER_TEMPLATES
+    else:
+        templates = []
 
     regions: list[ClusterRegion] = []
     warnings: list[str] = []
-    for label, path in GROUP_I_CLUSTER_TEMPLATES:
+    for label, path in templates:
         if not path.is_file():
             warnings.append(f"Default teaching cluster is missing: {path.name}.")
             continue

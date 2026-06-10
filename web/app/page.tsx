@@ -1184,6 +1184,7 @@ export default function Home() {
             </label>
             <p className="input-note cluster-note">
               Group I includes default teaching clusters from Leptolyngbya boryana dg5 and Anabaena variabilis ATCC 29413.
+              Group II includes a default teaching cluster from Sodalinema sp. AB48.
               Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 100 kb or smaller.
             </p>
             <div className="cluster-slot-list">
@@ -1363,6 +1364,15 @@ export default function Home() {
                 {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg ? (
                   <p className="figure-caption">{figure2Caption}</p>
                 ) : null}
+
+                {response?.genomicContextGenbank ? (
+                  <div className="download-row" aria-label="Download Figure 2 genomic context">
+                    <button className="ghost-button" type="button" onClick={downloadLocalContextGenbank}>
+                      <Download size={16} aria-hidden />
+                      Download nif/vnf-related region (gbk)
+                    </button>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -1407,12 +1417,6 @@ export default function Home() {
             ) : null}
 
             <div className="download-row final-download-row" aria-label="Download results">
-              {response?.genomicContextGenbank ? (
-                <button className="ghost-button" type="button" onClick={downloadLocalContextGenbank}>
-                  <Download size={16} aria-hidden />
-                  Download nif/vnf-related region (gbk)
-                </button>
-              ) : null}
               {response?.vnfContextGenbank ? (
                 <button className="ghost-button" type="button" onClick={downloadVnfContextGenbank}>
                   <Download size={16} aria-hidden />
