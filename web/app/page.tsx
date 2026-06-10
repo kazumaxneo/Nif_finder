@@ -1285,44 +1285,6 @@ export default function Home() {
 
         {records.length > 0 ? (
           <>
-            {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg || response?.genomicContextMessage ? (
-              <div className="genomic-context">
-                {response?.genomicContextMessage ? (
-                  <div className="notice">
-                    <AlertCircle size={20} aria-hidden />
-                    <div>
-                      <strong>Genomic context notice.</strong>
-                      <p>{response.genomicContextMessage}</p>
-                    </div>
-                  </div>
-                ) : null}
-
-                {response?.genomicContextOverviewSvg ? (
-                  <div className="chart-panel">
-                    <img
-                      className="context-plot"
-                      src={svgDataUri(response.genomicContextOverviewSvg)}
-                      alt="Whole genome view of matched target gene locations"
-                    />
-                  </div>
-                ) : null}
-
-                {response?.genomicContextLocalSvg ? (
-                  <div className="chart-panel">
-                    <img
-                      className="context-plot"
-                      src={svgDataUri(response.genomicContextLocalSvg)}
-                      alt="Enlarged genomic view around matched target hits"
-                    />
-                  </div>
-                ) : null}
-
-                {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg ? (
-                  <p className="figure-caption">{figure2Caption}</p>
-                ) : null}
-              </div>
-            ) : null}
-
             <div className="summary-table-wrap">
               <p className="table-caption">
                 Table 1. Summary of target genes identified by Nif-Finder.
@@ -1365,6 +1327,44 @@ export default function Home() {
                 <div className="empty-state compact">No plot image was returned by the compute API.</div>
               )}
             </div>
+
+            {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg || response?.genomicContextMessage ? (
+              <div className="genomic-context">
+                {response?.genomicContextMessage ? (
+                  <div className="notice">
+                    <AlertCircle size={20} aria-hidden />
+                    <div>
+                      <strong>Genomic context notice.</strong>
+                      <p>{response.genomicContextMessage}</p>
+                    </div>
+                  </div>
+                ) : null}
+
+                {response?.genomicContextOverviewSvg ? (
+                  <div className="chart-panel">
+                    <img
+                      className="context-plot"
+                      src={svgDataUri(response.genomicContextOverviewSvg)}
+                      alt="Whole genome view of matched target gene locations"
+                    />
+                  </div>
+                ) : null}
+
+                {response?.genomicContextLocalSvg ? (
+                  <div className="chart-panel">
+                    <img
+                      className="context-plot"
+                      src={svgDataUri(response.genomicContextLocalSvg)}
+                      alt="Enlarged genomic view around matched target hits"
+                    />
+                  </div>
+                ) : null}
+
+                {response?.genomicContextOverviewSvg || response?.genomicContextLocalSvg ? (
+                  <p className="figure-caption">{figure2Caption}</p>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="table-wrap">
               <p className="table-caption">{table2Caption}</p>
