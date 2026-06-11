@@ -1183,10 +1183,15 @@ export default function Home() {
               </select>
             </label>
             <p className="input-note cluster-note">
-              Group I includes default teaching clusters from Leptolyngbya boryana dg5 and Anabaena variabilis ATCC 29413.
+              Group I includes default teaching clusters from Leptolyngbya boryana dg5 and Trichormus variabilis ATCC 29413.
               Group II includes a default teaching cluster from Sodalinema sp. AB48.
               Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 100 kb or smaller.
             </p>
+            {clusterGroup === "groupI" ? (
+              <figure className="cluster-reference-figure">
+                <img src="/group-i-nif-cluster.jpg" alt="Group I nif-cluster reference gene maps" />
+              </figure>
+            ) : null}
             <div className="cluster-slot-list">
               {clusterSlots.map((slotIndex) => {
                 const file = clusterFiles.find((item) => item.slotIndex === slotIndex);

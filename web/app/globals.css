@@ -494,6 +494,22 @@ input:focus {
   max-width: 650px;
 }
 
+.cluster-reference-figure {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 0;
+  overflow: auto;
+  padding: 8px;
+  width: min(960px, 100%);
+}
+
+.cluster-reference-figure img {
+  display: block;
+  height: auto;
+  min-width: 760px;
+  width: 100%;
+}
+
 .cluster-slot-list {
   display: grid;
   gap: 8px;

@@ -98,8 +98,15 @@ CLUSTER_TEMPLATE_DIR = Path(__file__).resolve().parent / "cluster_templates"
 
 
 GROUP_I_CLUSTER_TEMPLATES = [
-    ("Leptolyngbya boryana dg5 nif cluster", CLUSTER_TEMPLATE_DIR / "groupI_leptolyngbya_boryana_dg5_nif_cluster.gbk"),
-    ("Anabaena variabilis ATCC 29413 nif cluster", CLUSTER_TEMPLATE_DIR / "groupI_anabaena_variabilis_atcc29413_nif_cluster.gbk"),
+    ("Leptolyngbya boryana dg5 nif-cluster", CLUSTER_TEMPLATE_DIR / "groupI_leptolyngbya_boryana_dg5_nif_cluster.gbk"),
+    (
+        "Trichormus variabilis ATCC 29413 nif-cluster I",
+        CLUSTER_TEMPLATE_DIR / "groupI_trichormus_variabilis_atcc29413_nif_cluster_I.gbk",
+    ),
+    (
+        "Trichormus variabilis ATCC 29413 nif-cluster II",
+        CLUSTER_TEMPLATE_DIR / "groupI_trichormus_variabilis_atcc29413_nif_cluster_II.gbk",
+    ),
 ]
 
 GROUP_II_CLUSTER_TEMPLATES = [
