@@ -98,19 +98,39 @@ CLUSTER_TEMPLATE_DIR = Path(__file__).resolve().parent / "cluster_templates"
 
 
 GROUP_I_CLUSTER_TEMPLATES = [
-    ("Leptolyngbya boryana dg5 nif-cluster", CLUSTER_TEMPLATE_DIR / "groupI_leptolyngbya_boryana_dg5_nif_cluster.gbk"),
     (
+        "groupI-dg5",
+        "Leptolyngbya boryana dg5 nif-cluster",
+        CLUSTER_TEMPLATE_DIR / "groupI_leptolyngbya_boryana_dg5_nif_cluster.gbk",
+    ),
+    (
+        "groupI-ims101",
+        "Trichodesmium erythraeum IMS101 nif-cluster",
+        CLUSTER_TEMPLATE_DIR / "groupI_trichodesmium_erythraeum_ims101_nif_cluster.gbk",
+    ),
+    (
+        "groupI-atcc29413-I",
         "Trichormus variabilis ATCC 29413 nif-cluster I",
         CLUSTER_TEMPLATE_DIR / "groupI_trichormus_variabilis_atcc29413_nif_cluster_I.gbk",
     ),
     (
+        "groupI-atcc29413-II",
         "Trichormus variabilis ATCC 29413 nif-cluster II",
         CLUSTER_TEMPLATE_DIR / "groupI_trichormus_variabilis_atcc29413_nif_cluster_II.gbk",
     ),
 ]
 
 GROUP_II_CLUSTER_TEMPLATES = [
-    ("Sodalinema sp. AB48 soda lake nif cluster", CLUSTER_TEMPLATE_DIR / "groupII_sodalinema_sp_ab48_soda_lake_nif_cluster.gbk"),
+    (
+        "groupII-sodalinema-ab48",
+        "Sodalinema sp. AB48 soda lake nif-cluster",
+        CLUSTER_TEMPLATE_DIR / "groupII_sodalinema_sp_ab48_soda_lake_nif_cluster.gbk",
+    ),
+    (
+        "groupII-phormidium-ccy1219",
+        "Phormidium sp. CCY1219 nif-cluster",
+        CLUSTER_TEMPLATE_DIR / "groupII_phormidium_sp_ccy1219_nif_cluster.gbk",
+    ),
 ]
 
 
@@ -157,6 +177,7 @@ class ClusterRegionResponse(BaseModel):
 class ClusterCompareRequest(BaseModel):
     group: str = Field(default="groupI")
     regions: list[ClusterRegion] = Field(default_factory=list, max_length=MAX_CLUSTER_UPLOADS)
+    templateIds: list[str] | None = None
 
 
 class ClusterCompareResponse(BaseModel):
@@ -363,7 +384,7 @@ def extract_cluster_regions_from_genbank(file_name: str, content: str) -> tuple[
     return regions, warnings
 
 
-def selected_template_regions(group: str) -> tuple[list[ClusterRegion], list[str]]:
+def selected_template_regions(group: str, selected_template_ids: list[str] | None = None) -> tuple[list[ClusterRegion], list[str]]:
     if group == "groupI":
         templates = GROUP_I_CLUSTER_TEMPLATES
     elif group == "groupII":
@@ -373,7 +394,16 @@ def selected_template_regions(group: str) -> tuple[list[ClusterRegion], list[str
 
     regions: list[ClusterRegion] = []
     warnings: list[str] = []
-    for label, path in templates:
+    selected_ids = set(selected_template_ids) if selected_template_ids is not None else None
+    available_ids = {template_id for template_id, _label, _path in templates}
+    if selected_ids is not None:
+        unknown_ids = sorted(selected_ids - available_ids)
+        for template_id in unknown_ids:
+            warnings.append(f"Unknown reference cluster was ignored: {template_id}.")
+
+    for template_id, label, path in templates:
+        if selected_ids is not None and template_id not in selected_ids:
+            continue
         if not path.is_file():
             warnings.append(f"Default teaching cluster is missing: {path.name}.")
             continue
@@ -384,13 +414,13 @@ def selected_template_regions(group: str) -> tuple[list[ClusterRegion], list[str
     return regions, warnings
 
 
-def run_clinker(group: str, user_regions: list[ClusterRegion]) -> ClusterCompareResponse:
+def run_clinker(group: str, user_regions: list[ClusterRegion], selected_template_ids: list[str] | None = None) -> ClusterCompareResponse:
     if group not in {"groupI", "groupII"}:
         raise HTTPException(status_code=400, detail="comparison group must be groupI or groupII.")
     if len(user_regions) > MAX_CLUSTER_UPLOADS:
         raise HTTPException(status_code=400, detail=f"Upload at most {MAX_CLUSTER_UPLOADS} GenBank regions.")
 
-    template_regions, warnings = selected_template_regions(group)
+    template_regions, warnings = selected_template_regions(group, selected_template_ids)
     regions = [*template_regions, *user_regions]
     if len(regions) < 2:
         raise HTTPException(status_code=400, detail="At least two cluster regions are required for clinker comparison.")
@@ -1170,7 +1200,7 @@ def compare_clusters(
     x_analysis_token: str | None = Header(default=None),
 ) -> ClusterCompareResponse:
     validate_api_access(x_api_key, x_analysis_token)
-    return run_clinker(request.group, request.regions)
+    return run_clinker(request.group, request.regions, request.templateIds)
 
 
 @app.post("/analyze", response_model=AnalyzeResponse)

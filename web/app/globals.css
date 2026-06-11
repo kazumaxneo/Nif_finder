@@ -517,6 +517,27 @@ input:focus {
   width: 100%;
 }
 
+.cluster-reference-options {
+  display: grid;
+  gap: 7px;
+  max-width: 760px;
+}
+
+.cluster-reference-option {
+  align-items: center;
+  color: var(--text);
+  display: flex;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 8px;
+  line-height: 1.35;
+}
+
+.cluster-reference-option input {
+  accent-color: var(--accent);
+  flex: 0 0 auto;
+}
+
 .cluster-slot-list {
   display: grid;
   gap: 8px;

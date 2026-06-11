@@ -69,6 +69,11 @@ type ClusterUploadFile = {
   content: string;
 };
 
+type ClusterReference = {
+  id: string;
+  label: string;
+};
+
 let visitCountRequested = false;
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
@@ -110,6 +115,22 @@ const maxJobs = 4;
 const maxCpu = 12;
 const maxContextPaddingKb = 30;
 const maxClusterUploads = 5;
+const clusterReferences: Record<"groupI" | "groupII", ClusterReference[]> = {
+  groupI: [
+    { id: "groupI-dg5", label: "Leptolyngbya boryana dg5 nif-cluster" },
+    { id: "groupI-ims101", label: "Trichodesmium erythraeum IMS101 nif-cluster" },
+    { id: "groupI-atcc29413-I", label: "Trichormus variabilis ATCC 29413 nif-cluster I" },
+    { id: "groupI-atcc29413-II", label: "Trichormus variabilis ATCC 29413 nif-cluster II" },
+  ],
+  groupII: [
+    { id: "groupII-sodalinema-ab48", label: "Sodalinema sp. AB48 soda lake nif-cluster" },
+    { id: "groupII-phormidium-ccy1219", label: "Phormidium sp. CCY1219 nif-cluster" },
+  ],
+};
+const defaultClusterReferenceIds = {
+  groupI: clusterReferences.groupI.map((reference) => reference.id),
+  groupII: clusterReferences.groupII.map((reference) => reference.id),
+};
 const directComputeRequestThreshold = 1_000_000;
 const apiRouteRetryMaxBytes = 4_000_000;
 const exampleDatasets = [
@@ -211,6 +232,7 @@ export default function Home() {
   const [response, setResponse] = useState<ApiResponse | null>(null);
   const [visitCount, setVisitCount] = useState<number | null>(null);
   const [clusterGroup, setClusterGroup] = useState<"groupI" | "groupII">("groupI");
+  const [selectedClusterTemplateIds, setSelectedClusterTemplateIds] = useState<string[]>(defaultClusterReferenceIds.groupI);
   const [clusterFiles, setClusterFiles] = useState<ClusterUploadFile[]>([]);
   const [clusterRegions, setClusterRegions] = useState<ClusterRegion[]>([]);
   const [selectedClusterRegionIds, setSelectedClusterRegionIds] = useState<Record<string, string>>({});
@@ -265,6 +287,7 @@ export default function Home() {
   const demoClusterFigure = records.length > 0 ? demoClusterFigures[submittedExampleDataset] : undefined;
   const clusterSlots = useMemo(() => Array.from({ length: maxClusterUploads }, (_, index) => index), []);
   const clusterWarnings = useMemo(() => Object.values(clusterSlotWarnings).flat(), [clusterSlotWarnings]);
+  const clusterReferenceOptions = clusterReferences[clusterGroup];
   const selectedClusterRegions = useMemo(() => {
     return clusterFiles
       .map((file) => {
@@ -274,7 +297,9 @@ export default function Home() {
       })
       .filter((region): region is ClusterRegion => Boolean(region));
   }, [clusterFiles, clusterRegions, selectedClusterRegionIds]);
-  const canRunClusterComparison = clusterFiles.length > 0 && selectedClusterRegions.length === clusterFiles.length;
+  const allLoadedClusterFilesSelected = selectedClusterRegions.length === clusterFiles.length;
+  const canRunClusterComparison =
+    allLoadedClusterFilesSelected && selectedClusterTemplateIds.length + selectedClusterRegions.length >= 2;
 
   function clampNumber(value: number, min: number, max: number) {
     if (!Number.isFinite(value)) return min;
@@ -292,6 +317,19 @@ export default function Home() {
       }
       return current.filter((item) => item !== gene);
     });
+  }
+
+  function changeClusterGroup(group: "groupI" | "groupII") {
+    setClusterGroup(group);
+    setSelectedClusterTemplateIds(defaultClusterReferenceIds[group]);
+    setClusterResult(null);
+  }
+
+  function toggleClusterTemplate(templateId: string) {
+    setSelectedClusterTemplateIds((current) =>
+      current.includes(templateId) ? current.filter((item) => item !== templateId) : [...current, templateId],
+    );
+    setClusterResult(null);
   }
 
   async function loadExampleDataset(dataset: string) {
@@ -820,6 +858,7 @@ export default function Home() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           group: clusterGroup,
+          templateIds: selectedClusterTemplateIds,
           regions: selectedClusterRegions,
         }),
       });
@@ -1177,16 +1216,27 @@ export default function Home() {
             <div className="section-title">nif-cluster comparison</div>
             <label className="field compact-field cluster-group-field">
               Comparison group
-              <select value={clusterGroup} onChange={(event) => setClusterGroup(event.target.value as "groupI" | "groupII")}>
+              <select value={clusterGroup} onChange={(event) => changeClusterGroup(event.target.value as "groupI" | "groupII")}>
                 <option value="groupI">Group I nif</option>
                 <option value="groupII">Group II nif</option>
               </select>
             </label>
             <p className="input-note cluster-note">
-              Group I includes default teaching clusters from Leptolyngbya boryana dg5 and Trichormus variabilis ATCC 29413.
-              Group II includes a default teaching cluster from Sodalinema sp. AB48.
-              Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 100 kb or smaller.
+              Select reference clusters to include, then optionally upload up to 5 Nif-Finder GenBank regions.
+              At least two total regions are required for comparison; each selected region must be 100 kb or smaller.
             </p>
+            <div className="cluster-reference-options" aria-label="Reference clusters">
+              {clusterReferenceOptions.map((reference) => (
+                <label className="cluster-reference-option" key={reference.id}>
+                  <input
+                    type="checkbox"
+                    checked={selectedClusterTemplateIds.includes(reference.id)}
+                    onChange={() => toggleClusterTemplate(reference.id)}
+                  />
+                  <span>{reference.label}</span>
+                </label>
+              ))}
+            </div>
             <div className="cluster-slot-list">
               {clusterSlots.map((slotIndex) => {
                 const file = clusterFiles.find((item) => item.slotIndex === slotIndex);
