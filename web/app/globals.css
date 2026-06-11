@@ -503,6 +503,13 @@ input:focus {
   width: min(960px, 100%);
 }
 
+.cluster-reference-figure figcaption {
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
 .cluster-reference-figure img {
   display: block;
   height: auto;

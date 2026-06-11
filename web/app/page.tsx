@@ -1187,11 +1187,6 @@ export default function Home() {
               Group II includes a default teaching cluster from Sodalinema sp. AB48.
               Upload up to 5 Nif-Finder GenBank regions. Each selected region must be 100 kb or smaller.
             </p>
-            {clusterGroup === "groupI" ? (
-              <figure className="cluster-reference-figure">
-                <img src="/group-i-nif-cluster.jpg" alt="Group I nif-cluster reference gene maps" />
-              </figure>
-            ) : null}
             <div className="cluster-slot-list">
               {clusterSlots.map((slotIndex) => {
                 const file = clusterFiles.find((item) => item.slotIndex === slotIndex);
@@ -1465,6 +1460,10 @@ export default function Home() {
           {activeTab === "compare" ? (
             <article className="manual-body cluster-comparison-page">
               <h2>nif-cluster comparison</h2>
+              <figure className="cluster-reference-figure">
+                <figcaption>Typical gene organization of Group I <em>nif</em>-clusters.</figcaption>
+                <img src="/group-i-nif-cluster.jpg" alt="Group I nif-cluster reference gene maps" />
+              </figure>
               <p>
                 Compare Nif-Finder GenBank cluster regions with clinker. For Group I nif, the dg5 and ATCC29413
                 teaching clusters are added automatically; uploaded regions are compared against those references.
