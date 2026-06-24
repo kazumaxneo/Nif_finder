@@ -1598,11 +1598,6 @@ export default function Home() {
                 <p>Under revision for peer review.</p>
               </div>
 
-              <h3>Figure 2: Cyanobacterial phylogeny</h3>
-              <p>
-                Maximum-likelihood phylogeny of cyanobacterial lineages showing the presence or absence of{" "}
-                <em>nifHDKENB</em>.
-              </p>
               <div className="download-row figure-link-row">
                 <a className="ghost-button" href="/figures/Figure2.pdf" target="_blank" rel="noreferrer">
                   <Download size={16} aria-hidden />
@@ -1630,10 +1625,6 @@ export default function Home() {
                 of <em>nifHDKENB</em>.
               </p>
 
-              <h3>Figure 3: Nif, Vnf, and Anf phylogeny</h3>
-              <p>
-                Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes.
-              </p>
               <div className="download-row figure-link-row">
                 <a className="ghost-button" href="/figures/Figure3.pdf" target="_blank" rel="noreferrer">
                   <Download size={16} aria-hidden />
@@ -1669,10 +1660,6 @@ export default function Home() {
                 Fig. 3. Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes.
               </p>
 
-              <h3>Figure 4: Groups I and II nif clusters</h3>
-              <p>
-                Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria.
-              </p>
               <div className="download-row figure-link-row">
                 <a className="ghost-button" href="/figures/Figure4.pdf" target="_blank" rel="noreferrer">
                   <Download size={16} aria-hidden />
@@ -1699,11 +1686,6 @@ export default function Home() {
                 Fig. 4. Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria.
               </p>
 
-              <h3>Figure 7: Metagenomic profiling of cyanobacteria</h3>
-              <p>
-                Genus-level cyanobacterial abundance profiles across diverse environments based on publicly available
-                metagenomic sequencing datasets.
-              </p>
               <div className="download-row figure-link-row">
                 <a className="ghost-button" href="/figures/Figure7.pdf" target="_blank" rel="noreferrer">
                   <Download size={16} aria-hidden />
