@@ -1594,7 +1594,7 @@ export default function Home() {
                 <div>
                   <strong>Under revision for peer review.</strong>
                   <p>
-                    This high-resolution Figure 2 is provided because reviewers requested a higher-resolution version
+                    These high-resolution figures are provided because reviewers requested higher-resolution versions
                     during manuscript revision.
                   </p>
                 </div>
@@ -1652,6 +1652,90 @@ export default function Home() {
                 bootstrap values of 95-100 based on 1,000 ultrafast bootstrap replicates implemented in IQ-TREE 2.
                 Sericytochromatia and Vampirovibrionia were used as outgroups. The full-size figure is available from
                 the Nif-Finder repository.
+              </p>
+
+              <h3>Figure 3: Nif, Vnf, and Anf phylogeny</h3>
+              <p>
+                Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes.
+              </p>
+              <div className="download-row figure-link-row">
+                <a className="ghost-button" href="/figures/Figure3.pdf" target="_blank" rel="noreferrer">
+                  <Download size={16} aria-hidden />
+                  Open high-resolution PDF
+                </a>
+                <a
+                  className="ghost-button"
+                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure3.pdf"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileText size={16} aria-hidden />
+                  GitHub PDF
+                </a>
+                <a
+                  className="ghost-button"
+                  href="https://github.com/kazumaxneo/Nif_finder/tree/main/figures"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileText size={16} aria-hidden />
+                  GitHub figures folder
+                </a>
+              </div>
+
+              <figure className="figure-two-preview">
+                <a href="/figures/Figure3.pdf" target="_blank" rel="noreferrer">
+                  <img src="/figures/Figure3.png" alt="Figure 3 high-resolution preview" />
+                </a>
+              </figure>
+
+              <p className="figure-caption">
+                Fig. 3. Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes. The evolutionary
+                relationships of cyanobacterial NifHDK were examined using 65 cyanobacterial strains. For
+                non-cyanobacterial <em>nifHDK</em>, 491 strains from Koirala and Brozel [4] and 573 strains from Pi
+                et al. [12] were used (Supplementary Table S17). Branch colors indicate Nif Group I-IV, Vnf, and Anf
+                lineages. The monophyletic cyanobacterial clade is enlarged in the right panel. Branch labels indicate
+                bootstrap support values of 90-100 based on 1,000 ultrafast bootstrap replicates implemented in IQ-TREE
+                3.0 [88]. The high-resolution figure and ModelFinder data are available from the Nif-Finder repository
+                and on this website.
+              </p>
+
+              <h3>Figure 4: Groups I and II nif clusters</h3>
+              <p>
+                Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria.
+              </p>
+              <div className="download-row figure-link-row">
+                <a className="ghost-button" href="/figures/Figure4.pdf" target="_blank" rel="noreferrer">
+                  <Download size={16} aria-hidden />
+                  Open high-resolution PDF
+                </a>
+                <a
+                  className="ghost-button"
+                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure4.pdf"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileText size={16} aria-hidden />
+                  GitHub PDF
+                </a>
+              </div>
+
+              <figure className="figure-two-preview">
+                <a href="/figures/Figure4.pdf" target="_blank" rel="noreferrer">
+                  <img src="/figures/Figure4.png" alt="Figure 4 high-resolution preview" />
+                </a>
+              </figure>
+
+              <p className="figure-caption">
+                Fig. 4. Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria. ORFs are shown as thick
+                horizontal arrows, with identical colors indicating orthologous genes. Gene names associated with Groups
+                I and II <em>nif</em> clusters are shown in red and blue, respectively. Red and blue horizontal dashed
+                arrows indicate conserved core regions of Groups I and II <em>nif</em> clusters, respectively. Red and
+                black vertical arrows indicate conserved CnfR cis-elements [52] and NtcA box motifs [94], respectively.
+                Representative strains carrying Group I <em>nif</em> clusters, Group II <em>nif</em> clusters, or both
+                Groups I and II <em>nif</em> are shown. Vertical bars indicate genes located on different contigs. The
+                ORF map was visualized using Clinker [90]. The high-resolution figure is available from the Nif-Finder
+                repository and on this website.
               </p>
 
               <h3>Figure 7: Metagenomic profiling of cyanobacteria</h3>
