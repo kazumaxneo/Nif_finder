@@ -1589,12 +1589,14 @@ export default function Home() {
 
           {activeTab === "figure2" ? (
             <article className="manual-body figure-page">
-              <p className="revision-note">Under revision for peer review.</p>
-
-              <h2>High-resolution manuscript figures</h2>
-              <p>
-                Full-resolution manuscript figures are available here and in the Nif-Finder GitHub repository.
-              </p>
+              <div className="revision-note">
+                <p>Kazuma Uesaka and Yuichi Fujita, 2026.</p>
+                <p>
+                  &quot;Accurate prediction of nitrogen fixation in cyanobacteria reveals the dynamic evolution driving
+                  high retention rate with mosaic distribution&quot;
+                </p>
+                <p>Under revision for peer review.</p>
+              </div>
 
               <h3>Figure 2: Cyanobacterial phylogeny</h3>
               <p>
@@ -1625,24 +1627,7 @@ export default function Home() {
 
               <p className="figure-caption">
                 Fig. 2. Maximum-likelihood (ML) phylogeny of cyanobacterial lineages showing the presence or absence
-                of <em>nifHDKENB</em>. (A) Circular ML tree of 586 cyanobacterial lineages. The tree was inferred using
-                the ML method based on 120 GTDB-defined genes conserved across bacteria. The presence or absence of
-                Group I <em>nifHDKENB</em> is indicated by red and black, respectively, in the outermost ring together
-                with red and black dashed lines, respectively, connecting the tree and the species names. The blue
-                small circles just outside of the outermost ring indicate genomes encoding Group II <em>nif</em>. Copy
-                numbers of <em>nifHDKENB</em> and <em>vnfHDGKEN</em> are shown in the outer small box plots (gray for
-                MoFe-type <em>nifHDKENB</em>; orange for VFe-type <em>vnfHDGKEN</em>). The fused <em>nifEN</em> was
-                determined to be redundant, with one copy in each of <em>nifE</em> and <em>nifN</em>. Additionally,
-                information on fragmented <em>nif</em> genes is shown in small boxes just outside the outermost ring,
-                and the presence or absence of related genes (<em>vupABC</em>, <em>patS</em>, <em>hetR</em>,{" "}
-                <em>rbcL</em>, and <em>psbA</em>) is shown in small circles inside the ring denoting the copy numbers
-                of <em>nifHDKENB</em>. Representative species names are shown just outside the outermost circle for
-                easy identification. (B) Rectangular ML tree collapsed at the family level. Twenty-six major families
-                of Oxyphotobacteria from the circular tree are shown. The number of strains with known morphologies is
-                plotted along with small icons showing morphology at each clade. Blue circles on the branches represent
-                bootstrap values of 95-100 based on 1,000 ultrafast bootstrap replicates implemented in IQ-TREE 2.
-                Sericytochromatia and Vampirovibrionia were used as outgroups. The full-size figure is available from
-                the Nif-Finder repository.
+                of <em>nifHDKENB</em>.
               </p>
 
               <h3>Figure 3: Nif, Vnf, and Anf phylogeny</h3>
@@ -1681,14 +1666,7 @@ export default function Home() {
               </figure>
 
               <p className="figure-caption">
-                Fig. 3. Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes. The evolutionary
-                relationships of cyanobacterial NifHDK were examined using 65 cyanobacterial strains. For
-                non-cyanobacterial <em>nifHDK</em>, 491 strains from Koirala and Brozel [4] and 573 strains from Pi
-                et al. [12] were used (Supplementary Table S17). Branch colors indicate Nif Group I-IV, Vnf, and Anf
-                lineages. The monophyletic cyanobacterial clade is enlarged in the right panel. Branch labels indicate
-                bootstrap support values of 90-100 based on 1,000 ultrafast bootstrap replicates implemented in IQ-TREE
-                3.0 [88]. The high-resolution figure and ModelFinder data are available from the Nif-Finder repository
-                and on this website.
+                Fig. 3. Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes.
               </p>
 
               <h3>Figure 4: Groups I and II nif clusters</h3>
@@ -1718,15 +1696,7 @@ export default function Home() {
               </figure>
 
               <p className="figure-caption">
-                Fig. 4. Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria. ORFs are shown as thick
-                horizontal arrows, with identical colors indicating orthologous genes. Gene names associated with Groups
-                I and II <em>nif</em> clusters are shown in red and blue, respectively. Red and blue horizontal dashed
-                arrows indicate conserved core regions of Groups I and II <em>nif</em> clusters, respectively. Red and
-                black vertical arrows indicate conserved CnfR cis-elements [52] and NtcA box motifs [94], respectively.
-                Representative strains carrying Group I <em>nif</em> clusters, Group II <em>nif</em> clusters, or both
-                Groups I and II <em>nif</em> are shown. Vertical bars indicate genes located on different contigs. The
-                ORF map was visualized using Clinker [90]. The high-resolution figure is available from the Nif-Finder
-                repository and on this website.
+                Fig. 4. Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria.
               </p>
 
               <h3>Figure 7: Metagenomic profiling of cyanobacteria</h3>
@@ -1758,18 +1728,6 @@ export default function Home() {
 
               <p className="figure-caption">
                 Fig. 7. Metagenomic profiling of cyanobacteria at the genus level across diverse environments.
-                Abundance profiles of 77 major cyanobacterial genera were investigated based on counts of 1.26 million
-                publicly available metagenomic sequencing datasets from the NCBI Sequence Read Archive. For each
-                SRA/ERA/DRA dataset, 300,000 reads were subsampled and analyzed using the Kraken2 taxonomic profiler
-                [92] against a custom database of 2,716 GTDB R226 cyanobacterial representative genomes [42]. Relative
-                abundances below 0.1% were excluded, and average abundances were row normalized within each genus
-                (scaled 0-100) to highlight distribution patterns across diverse environmental niches. Hierarchical
-                clustering was performed using Ward&apos;s method based on Euclidean distances. Sections I-V and
-                Nif-frequency (%) per genus (<em>nifHDKENB</em>+) are displayed alongside the genus names. Four genera
-                containing strains with the Group II <em>nif</em> genes are shown with blue colored arrows, and three
-                genera containing strains with both Groups I and II <em>nif</em> genes are shown with light blue
-                colored arrows. The high-resolution figure is available from the Nif-Finder repository and on this
-                website.
               </p>
             </article>
           ) : null}

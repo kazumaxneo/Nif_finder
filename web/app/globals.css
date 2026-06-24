@@ -831,8 +831,16 @@ input:focus {
 
 .revision-note {
   color: var(--ink);
-  font-weight: 600;
+  font-weight: 400;
   margin: 0;
+}
+
+.revision-note p {
+  margin: 0 0 4px;
+}
+
+.revision-note p:last-child {
+  margin-bottom: 0;
 }
 
 .figure-link-row {
