@@ -1589,16 +1589,7 @@ export default function Home() {
 
           {activeTab === "figure2" ? (
             <article className="manual-body figure-page">
-              <div className="revision-banner">
-                <AlertCircle size={20} aria-hidden />
-                <div>
-                  <strong>Under revision for peer review.</strong>
-                  <p>
-                    These high-resolution figures are provided because reviewers requested higher-resolution versions
-                    during manuscript revision.
-                  </p>
-                </div>
-              </div>
+              <p className="revision-note">Under revision for peer review.</p>
 
               <h2>High-resolution manuscript figures</h2>
               <p>
