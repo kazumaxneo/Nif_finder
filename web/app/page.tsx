@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import { AlertCircle, BookOpen, Download, FileUp, GitCompareArrows, HomeIcon, Info, Play } from "lucide-react";
+import { AlertCircle, BookOpen, Download, FileText, FileUp, GitCompareArrows, HomeIcon, Info, Play } from "lucide-react";
 
 type ResultRecord = {
   query: string;
@@ -196,7 +196,7 @@ type ZipEntry = {
   data: Uint8Array;
 };
 
-type ActiveTab = "run" | "compare" | "manual" | "about";
+type ActiveTab = "run" | "compare" | "figure2" | "manual" | "about";
 
 const navigationTabs: Array<{
   id: ActiveTab;
@@ -205,6 +205,7 @@ const navigationTabs: Array<{
 }> = [
   { id: "run", label: "Run", icon: HomeIcon },
   { id: "compare", label: "nif-cluster comparison", icon: GitCompareArrows },
+  { id: "figure2", label: "Cyanobacterial figures", icon: FileText },
   { id: "manual", label: "Manual", icon: BookOpen },
   { id: "about", label: "About", icon: Info },
 ];
@@ -1583,6 +1584,118 @@ export default function Home() {
                   Upload up to 5 Nif-Finder GenBank region files, select one region per file when needed, and run clinker.
                 </div>
               )}
+            </article>
+          ) : null}
+
+          {activeTab === "figure2" ? (
+            <article className="manual-body figure-page">
+              <div className="revision-banner">
+                <AlertCircle size={20} aria-hidden />
+                <div>
+                  <strong>Under revision for peer review.</strong>
+                  <p>
+                    This high-resolution Figure 2 is provided because reviewers requested a higher-resolution version
+                    during manuscript revision.
+                  </p>
+                </div>
+              </div>
+
+              <h2>High-resolution manuscript figures</h2>
+              <p>
+                Full-resolution manuscript figures are available here and in the Nif-Finder GitHub repository.
+              </p>
+
+              <h3>Figure 2: Cyanobacterial phylogeny</h3>
+              <p>
+                Maximum-likelihood phylogeny of cyanobacterial lineages showing the presence or absence of{" "}
+                <em>nifHDKENB</em>.
+              </p>
+              <div className="download-row figure-link-row">
+                <a className="ghost-button" href="/figures/Figure2.pdf" target="_blank" rel="noreferrer">
+                  <Download size={16} aria-hidden />
+                  Open high-resolution PDF
+                </a>
+                <a
+                  className="ghost-button"
+                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure2.pdf"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileText size={16} aria-hidden />
+                  GitHub PDF
+                </a>
+              </div>
+
+              <figure className="figure-two-preview">
+                <a href="/figures/Figure2.pdf" target="_blank" rel="noreferrer">
+                  <img src="/figures/Figure2.png" alt="Figure 2 high-resolution preview" />
+                </a>
+              </figure>
+
+              <p className="figure-caption">
+                Fig. 2. Maximum-likelihood (ML) phylogeny of cyanobacterial lineages showing the presence or absence
+                of <em>nifHDKENB</em>. (A) Circular ML tree of 586 cyanobacterial lineages. The tree was inferred using
+                the ML method based on 120 GTDB-defined genes conserved across bacteria. The presence or absence of
+                Group I <em>nifHDKENB</em> is indicated by red and black, respectively, in the outermost ring together
+                with red and black dashed lines, respectively, connecting the tree and the species names. The blue
+                small circles just outside of the outermost ring indicate genomes encoding Group II <em>nif</em>. Copy
+                numbers of <em>nifHDKENB</em> and <em>vnfHDGKEN</em> are shown in the outer small box plots (gray for
+                MoFe-type <em>nifHDKENB</em>; orange for VFe-type <em>vnfHDGKEN</em>). The fused <em>nifEN</em> was
+                determined to be redundant, with one copy in each of <em>nifE</em> and <em>nifN</em>. Additionally,
+                information on fragmented <em>nif</em> genes is shown in small boxes just outside the outermost ring,
+                and the presence or absence of related genes (<em>vupABC</em>, <em>patS</em>, <em>hetR</em>,{" "}
+                <em>rbcL</em>, and <em>psbA</em>) is shown in small circles inside the ring denoting the copy numbers
+                of <em>nifHDKENB</em>. Representative species names are shown just outside the outermost circle for
+                easy identification. (B) Rectangular ML tree collapsed at the family level. Twenty-six major families
+                of Oxyphotobacteria from the circular tree are shown. The number of strains with known morphologies is
+                plotted along with small icons showing morphology at each clade. Blue circles on the branches represent
+                bootstrap values of 95-100 based on 1,000 ultrafast bootstrap replicates implemented in IQ-TREE 2.
+                Sericytochromatia and Vampirovibrionia were used as outgroups. The full-size figure is available from
+                the Nif-Finder repository.
+              </p>
+
+              <h3>Figure 7: Metagenomic profiling of cyanobacteria</h3>
+              <p>
+                Genus-level cyanobacterial abundance profiles across diverse environments based on publicly available
+                metagenomic sequencing datasets.
+              </p>
+              <div className="download-row figure-link-row">
+                <a className="ghost-button" href="/figures/Figure7.pdf" target="_blank" rel="noreferrer">
+                  <Download size={16} aria-hidden />
+                  Open high-resolution PDF
+                </a>
+                <a
+                  className="ghost-button"
+                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure7.pdf"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <FileText size={16} aria-hidden />
+                  GitHub PDF
+                </a>
+              </div>
+
+              <figure className="figure-two-preview">
+                <a href="/figures/Figure7.pdf" target="_blank" rel="noreferrer">
+                  <img src="/figures/Figure7.png" alt="Figure 7 high-resolution preview" />
+                </a>
+              </figure>
+
+              <p className="figure-caption">
+                Fig. 7. Metagenomic profiling of cyanobacteria at the genus level across diverse environments.
+                Abundance profiles of 77 major cyanobacterial genera were investigated based on counts of 1.26 million
+                publicly available metagenomic sequencing datasets from the NCBI Sequence Read Archive. For each
+                SRA/ERA/DRA dataset, 300,000 reads were subsampled and analyzed using the Kraken2 taxonomic profiler
+                [92] against a custom database of 2,716 GTDB R226 cyanobacterial representative genomes [42]. Relative
+                abundances below 0.1% were excluded, and average abundances were row normalized within each genus
+                (scaled 0-100) to highlight distribution patterns across diverse environmental niches. Hierarchical
+                clustering was performed using Ward&apos;s method based on Euclidean distances. Sections I-V and
+                Nif-frequency (%) per genus (<em>nifHDKENB</em>+) are displayed alongside the genus names. Four genera
+                containing strains with the Group II <em>nif</em> genes are shown with blue colored arrows, and three
+                genera containing strains with both Groups I and II <em>nif</em> genes are shown with light blue
+                colored arrows. The high-resolution figure is available from the Nif-Finder repository and on this
+                website.
+              </p>
             </article>
           ) : null}
 

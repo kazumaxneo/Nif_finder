@@ -824,6 +824,50 @@ input:focus {
   width: 100%;
 }
 
+.figure-page {
+  display: grid;
+  gap: 16px;
+}
+
+.revision-banner {
+  align-items: flex-start;
+  background: #fff1f0;
+  border: 1px solid #f4aaa4;
+  border-radius: 8px;
+  color: #8f1f17;
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+}
+
+.revision-banner p {
+  color: #8f1f17;
+  margin-top: 4px;
+}
+
+.figure-link-row {
+  margin-top: 16px;
+}
+
+.figure-link-row a {
+  text-decoration: none;
+}
+
+.figure-two-preview {
+  margin: 18px 0 0;
+  overflow-x: auto;
+}
+
+.figure-two-preview img {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  min-width: 780px;
+  width: 100%;
+}
+
 .info-grid {
   display: grid;
   gap: 14px;
