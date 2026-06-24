@@ -78,6 +78,7 @@ let visitCountRequested = false;
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
 const vnfGenes = ["vnfH/nifH", "vnfD", "vnfK", "vnfE/nifE", "vnfN/nifN", "vnfG", "vnfDG"];
+const preprintUrl = "https://doi.org/10.64898/2026.01.15.699626";
 const accessoryGenes = [
   "nifZ", "nifX", "nifP/cysE", "nifT", "nifV", "nifS", "nifU", "nifU_like",
   "modB/vupB", "modC/vupC", "modAlike", "vupA/modA", "vupB/modB",
@@ -1598,24 +1599,8 @@ export default function Home() {
                 <p>Under revision for peer review.</p>
               </div>
 
-              <div className="download-row figure-link-row">
-                <a className="ghost-button" href="/figures/Figure2.pdf" target="_blank" rel="noreferrer">
-                  <Download size={16} aria-hidden />
-                  Open high-resolution PDF
-                </a>
-                <a
-                  className="ghost-button"
-                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure2.pdf"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <FileText size={16} aria-hidden />
-                  GitHub PDF
-                </a>
-              </div>
-
               <figure className="figure-two-preview">
-                <a href="/figures/Figure2.pdf" target="_blank" rel="noreferrer">
+                <a href={preprintUrl} target="_blank" rel="noreferrer">
                   <img src="/figures/Figure2.png" alt="Figure 2 high-resolution preview" />
                 </a>
               </figure>
@@ -1625,33 +1610,8 @@ export default function Home() {
                 of <em>nifHDKENB</em>.
               </p>
 
-              <div className="download-row figure-link-row">
-                <a className="ghost-button" href="/figures/Figure3.pdf" target="_blank" rel="noreferrer">
-                  <Download size={16} aria-hidden />
-                  Open high-resolution PDF
-                </a>
-                <a
-                  className="ghost-button"
-                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure3.pdf"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <FileText size={16} aria-hidden />
-                  GitHub PDF
-                </a>
-                <a
-                  className="ghost-button"
-                  href="https://github.com/kazumaxneo/Nif_finder/tree/main/figures"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <FileText size={16} aria-hidden />
-                  GitHub figures folder
-                </a>
-              </div>
-
               <figure className="figure-two-preview">
-                <a href="/figures/Figure3.pdf" target="_blank" rel="noreferrer">
+                <a href={preprintUrl} target="_blank" rel="noreferrer">
                   <img src="/figures/Figure3.png" alt="Figure 3 high-resolution preview" />
                 </a>
               </figure>
@@ -1660,24 +1620,8 @@ export default function Home() {
                 Fig. 3. Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes.
               </p>
 
-              <div className="download-row figure-link-row">
-                <a className="ghost-button" href="/figures/Figure4.pdf" target="_blank" rel="noreferrer">
-                  <Download size={16} aria-hidden />
-                  Open high-resolution PDF
-                </a>
-                <a
-                  className="ghost-button"
-                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure4.pdf"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <FileText size={16} aria-hidden />
-                  GitHub PDF
-                </a>
-              </div>
-
               <figure className="figure-two-preview">
-                <a href="/figures/Figure4.pdf" target="_blank" rel="noreferrer">
+                <a href={preprintUrl} target="_blank" rel="noreferrer">
                   <img src="/figures/Figure4.png" alt="Figure 4 high-resolution preview" />
                 </a>
               </figure>
@@ -1686,24 +1630,8 @@ export default function Home() {
                 Fig. 4. Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria.
               </p>
 
-              <div className="download-row figure-link-row">
-                <a className="ghost-button" href="/figures/Figure7.pdf" target="_blank" rel="noreferrer">
-                  <Download size={16} aria-hidden />
-                  Open high-resolution PDF
-                </a>
-                <a
-                  className="ghost-button"
-                  href="https://github.com/kazumaxneo/Nif_finder/blob/main/figures/Figure7.pdf"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <FileText size={16} aria-hidden />
-                  GitHub PDF
-                </a>
-              </div>
-
               <figure className="figure-two-preview">
-                <a href="/figures/Figure7.pdf" target="_blank" rel="noreferrer">
+                <a href={preprintUrl} target="_blank" rel="noreferrer">
                   <img src="/figures/Figure7.png" alt="Figure 7 high-resolution preview" />
                 </a>
               </figure>
