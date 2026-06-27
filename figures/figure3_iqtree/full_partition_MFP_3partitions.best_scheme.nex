@@ -1,0 +1,10 @@
+#nexus
+begin sets;
+  charset nifH = 1-520;
+  charset nifD = 521-1727;
+  charset nifK = 1728-2644;
+  charpartition mymodels =
+    LG+I+R9: nifH,
+    LG+I+R10: nifD,
+    Q.PFAM+I+R10: nifK;
+end;
