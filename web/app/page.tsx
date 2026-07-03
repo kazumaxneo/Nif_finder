@@ -1595,7 +1595,7 @@ export default function Home() {
                   &quot;Accurate prediction of nitrogen fixation in cyanobacteria reveals the dynamic evolution driving
                   high retention rate with mosaic distribution&quot;
                 </p>
-                <p>Now published.</p>
+                <p>Now published in Scientific Reports.</p>
               </div>
 
               <figure className="figure-two-preview">
@@ -1645,7 +1645,10 @@ export default function Home() {
                 </a>
               </figure>
 
-              <p className="figure-caption">Supplementary Fig. 12.</p>
+              <p className="figure-caption">
+                Supplementary Figure S12. Genus-level cyanobacterial phylogenetic tree showing the distribution of
+                Groups I and II <em>nif</em> carrying lineages.
+              </p>
             </article>
           ) : null}
 
