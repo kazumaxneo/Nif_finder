@@ -78,7 +78,6 @@ let visitCountRequested = false;
 
 const nifGenes = ["nifH", "nifD", "nifK", "nifE", "nifN", "nifB"];
 const vnfGenes = ["vnfH/nifH", "vnfD", "vnfK", "vnfE/nifE", "vnfN/nifN", "vnfG", "vnfDG"];
-const preprintUrl = "https://doi.org/10.64898/2026.01.15.699626";
 const accessoryGenes = [
   "nifZ", "nifX", "nifP/cysE", "nifT", "nifV", "nifS", "nifU", "nifU_like",
   "modB/vupB", "modC/vupC", "modAlike", "vupA/modA", "vupB/modB",
@@ -1596,11 +1595,11 @@ export default function Home() {
                   &quot;Accurate prediction of nitrogen fixation in cyanobacteria reveals the dynamic evolution driving
                   high retention rate with mosaic distribution&quot;
                 </p>
-                <p>Under revision for peer review.</p>
+                <p>Now published.</p>
               </div>
 
               <figure className="figure-two-preview">
-                <a href={preprintUrl} target="_blank" rel="noreferrer">
+                <a href="/figures/Figure2.pdf" download="Figure2.pdf">
                   <img src="/figures/Figure2.png" alt="Figure 2 high-resolution preview" />
                 </a>
               </figure>
@@ -1611,7 +1610,7 @@ export default function Home() {
               </p>
 
               <figure className="figure-two-preview">
-                <a href={preprintUrl} target="_blank" rel="noreferrer">
+                <a href="/figures/Figure3.pdf" download="Figure3.pdf">
                   <img src="/figures/Figure3.png" alt="Figure 3 high-resolution preview" />
                 </a>
               </figure>
@@ -1621,7 +1620,7 @@ export default function Home() {
               </p>
 
               <figure className="figure-two-preview">
-                <a href={preprintUrl} target="_blank" rel="noreferrer">
+                <a href="/figures/Figure4.pdf" download="Figure4.pdf">
                   <img src="/figures/Figure4.png" alt="Figure 4 high-resolution preview" />
                 </a>
               </figure>
@@ -1631,7 +1630,7 @@ export default function Home() {
               </p>
 
               <figure className="figure-two-preview">
-                <a href={preprintUrl} target="_blank" rel="noreferrer">
+                <a href="/figures/Figure7.pdf" download="Figure7.pdf">
                   <img src="/figures/Figure7.png" alt="Figure 7 high-resolution preview" />
                 </a>
               </figure>
@@ -1639,6 +1638,14 @@ export default function Home() {
               <p className="figure-caption">
                 Fig. 7. Metagenomic profiling of cyanobacteria at the genus level across diverse environments.
               </p>
+
+              <figure className="figure-two-preview">
+                <a href="/figures/Supplementary_Figure12.pdf" download="Supplementary_Figure12.pdf">
+                  <img src="/figures/Supplementary_Figure12.png" alt="Supplementary Figure 12 high-resolution preview" />
+                </a>
+              </figure>
+
+              <p className="figure-caption">Supplementary Fig. 12.</p>
             </article>
           ) : null}
 
