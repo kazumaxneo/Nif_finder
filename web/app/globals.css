@@ -865,6 +865,223 @@ input:focus {
   width: 100%;
 }
 
+.info-page.wide-taxonomy-page {
+  max-width: 1320px;
+}
+
+.taxonomy-page {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.taxonomy-intro {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: #303b46;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 0;
+  padding: 18px;
+}
+
+.taxonomy-layout {
+  align-items: flex-start;
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 250px minmax(0, 1fr);
+}
+
+.taxonomy-sidebar,
+.taxonomy-table-wrap {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.taxonomy-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  padding: 16px;
+  position: sticky;
+  top: 12px;
+}
+
+.taxonomy-sidebar h2 {
+  font-size: 17px;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.taxonomy-sidebar label {
+  color: #303b46;
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  font-weight: 650;
+  gap: 6px;
+}
+
+.taxonomy-sidebar input,
+.taxonomy-sidebar select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--ink);
+  font-size: 13px;
+  min-height: 38px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.taxonomy-filter-note {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.taxonomy-table-wrap {
+  min-width: 0;
+  overflow: hidden;
+}
+
+.taxonomy-table-head {
+  align-items: center;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 14px 16px;
+}
+
+.taxonomy-table-head p {
+  color: #303b46;
+  font-size: 13px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.taxonomy-table-head span {
+  color: var(--muted);
+  flex: 0 0 auto;
+  font-size: 12px;
+}
+
+.taxonomy-scroll {
+  max-height: 720px;
+  overflow: auto;
+}
+
+.taxonomy-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 12px;
+  min-width: 2180px;
+  width: 100%;
+}
+
+.taxonomy-table th,
+.taxonomy-table td {
+  border-bottom: 1px solid var(--line);
+  padding: 9px 10px;
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.taxonomy-table thead th {
+  background: #f8fafb;
+  color: #33404d;
+  font-weight: 700;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.taxonomy-table thead tr:nth-child(2) th {
+  top: 35px;
+}
+
+.taxonomy-table .sticky-col {
+  background: #ffffff;
+  left: 0;
+  min-width: 260px;
+  position: sticky;
+  width: 260px;
+  z-index: 3;
+}
+
+.taxonomy-table thead .sticky-col {
+  background: #f8fafb;
+  z-index: 4;
+}
+
+.taxonomy-table tbody tr:hover td,
+.taxonomy-table tbody tr:hover th {
+  background: #fbfdf9;
+}
+
+.taxonomy-organism {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.taxonomy-organism span {
+  display: block;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.taxonomy-organism small {
+  color: var(--muted);
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  margin-top: 3px;
+}
+
+.taxonomy-num,
+.taxonomy-gene {
+  text-align: right;
+}
+
+.taxonomy-gene {
+  font-variant-numeric: tabular-nums;
+}
+
+.taxonomy-gene.zero {
+  color: #9aa3ad;
+}
+
+.taxonomy-gene.on {
+  background: #ecfdf3;
+  color: #116149;
+  font-weight: 700;
+}
+
+.taxonomy-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  display: inline-block;
+  font-size: 11px;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.taxonomy-pill.yes {
+  background: #ecfdf3;
+  border-color: #b7e4ca;
+  color: #116149;
+}
+
+.taxonomy-pill.no {
+  background: #f8fafb;
+  color: #5d6875;
+}
+
 .info-grid {
   display: grid;
   gap: 14px;
@@ -1203,6 +1420,19 @@ th {
 
   .info-grid {
     grid-template-columns: 1fr;
+  }
+
+  .taxonomy-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .taxonomy-sidebar {
+    position: static;
+  }
+
+  .taxonomy-table-head {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .brand-figure {

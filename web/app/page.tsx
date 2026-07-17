@@ -1,7 +1,15 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import { AlertCircle, BookOpen, Download, FileText, FileUp, GitCompareArrows, HomeIcon, Info, Play } from "lucide-react";
+import { AlertCircle, BookOpen, Download, FileText, FileUp, GitCompareArrows, HomeIcon, Info, Play, TableProperties } from "lucide-react";
+import {
+  nifCleavageGenes,
+  nifCopyGenes,
+  relatedGeneColumns,
+  taxonomyRows,
+  type TaxonomyRow,
+  vnfCopyGenes,
+} from "./taxonomy-data";
 
 type ResultRecord = {
   query: string;
@@ -196,7 +204,7 @@ type ZipEntry = {
   data: Uint8Array;
 };
 
-type ActiveTab = "run" | "compare" | "figure2" | "manual" | "about";
+type ActiveTab = "run" | "compare" | "figure2" | "taxonomy" | "manual" | "about";
 
 const navigationTabs: Array<{
   id: ActiveTab;
@@ -206,9 +214,72 @@ const navigationTabs: Array<{
   { id: "run", label: "Run", icon: HomeIcon },
   { id: "compare", label: "nif-cluster comparison", icon: GitCompareArrows },
   { id: "figure2", label: "Cyanobacterial figures", icon: FileText },
+  { id: "taxonomy", label: "Cyanobacterial taxonomy", icon: TableProperties },
   { id: "manual", label: "Manual", icon: BookOpen },
   { id: "about", label: "About", icon: Info },
 ];
+
+type TaxonomyOption = {
+  value: string;
+  label: string;
+  count: number;
+};
+
+const organismRomanPrefixes = new Set(["uncultured", "bacterium", "cyanobacterium", "cyanobacteria", "candidatus"]);
+const openNomenclatureTokens = new Set(["sp.", "spp.", "cf.", "aff."]);
+
+function taxonomyOptions(rows: TaxonomyRow[], selector: (row: TaxonomyRow) => string): TaxonomyOption[] {
+  const counts = new Map<string, number>();
+  for (const row of rows) {
+    const value = selector(row);
+    if (!value) continue;
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+  return Array.from(counts, ([value, count]) => ({ value, label: `${value} (${count})`, count })).sort((a, b) =>
+    a.value.localeCompare(b.value),
+  );
+}
+
+function isSpeciesEpithet(token: string) {
+  return /^[a-z][a-z0-9-]*$/.test(token);
+}
+
+function formatOrganismName(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return name;
+  const firstLower = parts[0].toLowerCase();
+  if (organismRomanPrefixes.has(firstLower)) return name;
+  if (parts.length === 1) return <em>{name}</em>;
+
+  const secondLower = parts[1].toLowerCase();
+  if (openNomenclatureTokens.has(secondLower)) {
+    return (
+      <>
+        <em>{parts[0]}</em> {parts.slice(1).join(" ")}
+      </>
+    );
+  }
+  if (isSpeciesEpithet(parts[1])) {
+    const italicName = `${parts[0]} ${parts[1]}`;
+    const rest = parts.slice(2).join(" ");
+    return (
+      <>
+        <em>{italicName}</em>
+        {rest ? ` ${rest}` : ""}
+      </>
+    );
+  }
+
+  return name;
+}
+
+function geneCellClass(value: string) {
+  return value && value !== "0" ? "taxonomy-gene on" : "taxonomy-gene zero";
+}
+
+function taxonomyGeneValue(value: string) {
+  return value || "0";
+}
 
 export default function Home() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("run");
@@ -240,6 +311,12 @@ export default function Home() {
   const [clusterSlotWarnings, setClusterSlotWarnings] = useState<Record<number, string[]>>({});
   const [clusterLoading, setClusterLoading] = useState(false);
   const [clusterResult, setClusterResult] = useState<ClusterCompareResponse | null>(null);
+  const [taxonomySearch, setTaxonomySearch] = useState("");
+  const [taxonomyFamily, setTaxonomyFamily] = useState("");
+  const [taxonomyGenus, setTaxonomyGenus] = useState("");
+  const [taxonomyDiazotrophy, setTaxonomyDiazotrophy] = useState("");
+  const [taxonomyClass, setTaxonomyClass] = useState("");
+  const [taxonomyMorphology, setTaxonomyMorphology] = useState("");
 
   const records = response?.records ?? [];
   const displayedRecords = showOnlyNifHits
@@ -262,6 +339,23 @@ export default function Home() {
     });
   }, [records]);
   const totalTargetCopies = targetSummary.reduce((sum, row) => sum + row.total, 0);
+  const taxonomyFamilyOptions = useMemo(() => taxonomyOptions(taxonomyRows, (row) => row.family), []);
+  const taxonomyGenusOptions = useMemo(() => taxonomyOptions(taxonomyRows, (row) => row.genus), []);
+  const taxonomyDiazotrophyOptions = useMemo(() => taxonomyOptions(taxonomyRows, (row) => row.diazotrophy), []);
+  const taxonomyClassOptions = useMemo(() => taxonomyOptions(taxonomyRows, (row) => row.className), []);
+  const taxonomyMorphologyOptions = useMemo(() => taxonomyOptions(taxonomyRows, (row) => row.morphology), []);
+  const filteredTaxonomyRows = useMemo(() => {
+    const query = taxonomySearch.trim().toLowerCase();
+    return taxonomyRows.filter((row) => {
+      if (query && !row.searchText.includes(query)) return false;
+      if (taxonomyFamily && row.family !== taxonomyFamily) return false;
+      if (taxonomyGenus && row.genus !== taxonomyGenus) return false;
+      if (taxonomyDiazotrophy && row.diazotrophy !== taxonomyDiazotrophy) return false;
+      if (taxonomyClass && row.className !== taxonomyClass) return false;
+      if (taxonomyMorphology && row.morphology !== taxonomyMorphology) return false;
+      return true;
+    });
+  }, [taxonomySearch, taxonomyFamily, taxonomyGenus, taxonomyDiazotrophy, taxonomyClass, taxonomyMorphology]);
 
   useEffect(() => {
     if (visitCountRequested) return;
@@ -1507,7 +1601,15 @@ export default function Home() {
         </footer>
       </section>
       ) : (
-        <section className={activeTab === "compare" && clusterResult?.html ? "info-page wide-clinker-page" : "info-page"}>
+        <section
+          className={
+            activeTab === "compare" && clusterResult?.html
+              ? "info-page wide-clinker-page"
+              : activeTab === "taxonomy"
+                ? "info-page wide-taxonomy-page"
+                : "info-page"
+          }
+        >
           {activeTab === "compare" ? (
             <article className="manual-body cluster-comparison-page">
               <h2>nif-cluster comparison</h2>
@@ -1649,6 +1751,185 @@ export default function Home() {
                 Supplementary Figure S12. Genus-level cyanobacterial phylogenetic tree showing the distribution of
                 Groups I and II <em>nif</em> carrying lineages.
               </p>
+            </article>
+          ) : null}
+
+          {activeTab === "taxonomy" ? (
+            <article className="taxonomy-page">
+              <p className="taxonomy-intro">
+                Taxonomic and genome metadata for 586 cyanobacterial lineages used in the manuscript phylogeny.
+                Gene-level copy numbers, putative <em>nif</em> cleavage-site counts, and related-gene presence columns
+                are preserved from the original S1 table.
+              </p>
+
+              <div className="taxonomy-layout">
+                <aside className="taxonomy-sidebar" aria-label="Browse table filters">
+                  <h2>Browse table</h2>
+                  <label>
+                    Keyword
+                    <input
+                      type="search"
+                      value={taxonomySearch}
+                      onChange={(event) => setTaxonomySearch(event.target.value)}
+                      placeholder="Organism, assembly, morphology, environment"
+                    />
+                  </label>
+                  <label>
+                    Family
+                    <select value={taxonomyFamily} onChange={(event) => setTaxonomyFamily(event.target.value)}>
+                      <option value="">All families</option>
+                      {taxonomyFamilyOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Genus
+                    <select value={taxonomyGenus} onChange={(event) => setTaxonomyGenus(event.target.value)}>
+                      <option value="">All genera</option>
+                      {taxonomyGenusOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Diazotrophy
+                    <select value={taxonomyDiazotrophy} onChange={(event) => setTaxonomyDiazotrophy(event.target.value)}>
+                      <option value="">All records</option>
+                      {taxonomyDiazotrophyOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Class
+                    <select value={taxonomyClass} onChange={(event) => setTaxonomyClass(event.target.value)}>
+                      <option value="">All classes</option>
+                      {taxonomyClassOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Morphology
+                    <select value={taxonomyMorphology} onChange={(event) => setTaxonomyMorphology(event.target.value)}>
+                      <option value="">All morphologies</option>
+                      {taxonomyMorphologyOptions.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="taxonomy-filter-note">
+                    The table scrolls horizontally so individual gene columns remain visible as separate fields.
+                  </p>
+                </aside>
+
+                <section className="taxonomy-table-wrap">
+                  <div className="taxonomy-table-head">
+                    <p>Compact taxonomy columns plus original gene-level columns from S1.</p>
+                    <span>{filteredTaxonomyRows.length.toLocaleString()} / {taxonomyRows.length.toLocaleString()} rows</span>
+                  </div>
+                  <div className="taxonomy-scroll">
+                    <table className="taxonomy-table">
+                      <thead>
+                        <tr className="taxonomy-group-row">
+                          <th className="sticky-col" rowSpan={2}>Organism</th>
+                          <th colSpan={5}>GTDB taxonomy</th>
+                          <th colSpan={4}>Genome metadata</th>
+                          <th rowSpan={2}>Morphology</th>
+                          <th rowSpan={2}>Environment</th>
+                          <th rowSpan={2}>Diazotrophy</th>
+                          <th colSpan={nifCopyGenes.length}>Copy number of <em>nif</em></th>
+                          <th colSpan={vnfCopyGenes.length}>Copy number of <em>vnf</em></th>
+                          <th colSpan={nifCleavageGenes.length}>Number of <em>nif</em> putative cleavage site</th>
+                          <th colSpan={relatedGeneColumns.length}>Presence of <em>nif</em>-related genes</th>
+                          <th rowSpan={2}>Level</th>
+                        </tr>
+                        <tr>
+                          <th>Phylum</th>
+                          <th>Class</th>
+                          <th>Order</th>
+                          <th>Family</th>
+                          <th>Genus</th>
+                          <th>Size (Mb)</th>
+                          <th>GC (%)</th>
+                          <th>CDS</th>
+                          <th>Release Date</th>
+                          {nifCopyGenes.map((gene) => (
+                            <th key={`nif-copy-${gene}`}><em>{gene}</em></th>
+                          ))}
+                          {vnfCopyGenes.map((gene) => (
+                            <th key={`vnf-copy-${gene}`}><em>{gene}</em></th>
+                          ))}
+                          {nifCleavageGenes.map((gene) => (
+                            <th key={`nif-cleavage-${gene}`}><em>{gene}</em></th>
+                          ))}
+                          {relatedGeneColumns.map((gene) => (
+                            <th key={`related-${gene}`}><em>{gene}</em></th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredTaxonomyRows.map((row) => (
+                          <tr key={row.assemblyId || row.organismName}>
+                            <th className="sticky-col taxonomy-organism" scope="row">
+                              <span>{formatOrganismName(row.organismName)}</span>
+                              <small>{row.assemblyId}</small>
+                            </th>
+                            <td>{row.phylum}</td>
+                            <td>{row.className}</td>
+                            <td>{row.order}</td>
+                            <td>{row.family}</td>
+                            <td>{row.genus}</td>
+                            <td className="taxonomy-num">{row.sizeMb}</td>
+                            <td className="taxonomy-num">{row.gcPercent}</td>
+                            <td className="taxonomy-num">{row.cds}</td>
+                            <td>{row.releaseDate}</td>
+                            <td>{row.morphology}</td>
+                            <td>{row.environment}</td>
+                            <td>
+                              <span className={row.diazotrophy === "Yes" ? "taxonomy-pill yes" : "taxonomy-pill no"}>
+                                {row.diazotrophy || "Unknown"}
+                              </span>
+                            </td>
+                            {nifCopyGenes.map((gene) => (
+                              <td key={`nif-copy-${row.assemblyId}-${gene}`} className={geneCellClass(row.nifCopy[gene])}>
+                                {taxonomyGeneValue(row.nifCopy[gene])}
+                              </td>
+                            ))}
+                            {vnfCopyGenes.map((gene) => (
+                              <td key={`vnf-copy-${row.assemblyId}-${gene}`} className={geneCellClass(row.vnfCopy[gene])}>
+                                {taxonomyGeneValue(row.vnfCopy[gene])}
+                              </td>
+                            ))}
+                            {nifCleavageGenes.map((gene) => (
+                              <td key={`nif-cleavage-${row.assemblyId}-${gene}`} className={geneCellClass(row.nifCleavage[gene])}>
+                                {taxonomyGeneValue(row.nifCleavage[gene])}
+                              </td>
+                            ))}
+                            {relatedGeneColumns.map((gene) => (
+                              <td key={`related-${row.assemblyId}-${gene}`} className={geneCellClass(row.relatedGenes[gene])}>
+                                {taxonomyGeneValue(row.relatedGenes[gene])}
+                              </td>
+                            ))}
+                            <td>{row.level}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              </div>
             </article>
           ) : null}
 
