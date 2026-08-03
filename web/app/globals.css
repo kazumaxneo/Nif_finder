@@ -503,6 +503,10 @@ input:focus {
   width: min(960px, 100%);
 }
 
+.cluster-reference-figure + .cluster-reference-figure {
+  margin-top: 14px;
+}
+
 .cluster-reference-figure figcaption {
   color: var(--text);
   font-size: 14px;

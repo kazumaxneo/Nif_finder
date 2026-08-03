@@ -156,9 +156,9 @@ const demoClusterFigures: Record<string, { src: string; title: string; caption: 
   },
   "anabaena-variabilis-atcc-29413": {
     src: "/examples/anabaena_variabilis_atcc_29413_nif_cluster.png",
-    title: "Reference nif-cluster for Anabaena variabilis ATCC 29413",
+    title: "Reference nif-clusters for Trichormus variabilis ATCC 29413",
     caption:
-      "Expected nif-cluster organization for the Anabaena variabilis ATCC 29413 demo dataset.",
+      "Expected nif-cluster I and II organization for the ATCC 29413 demo dataset.",
   },
 };
 
@@ -1617,9 +1617,13 @@ export default function Home() {
                 <figcaption>Typical gene organization of Group I <em>nif</em>-clusters.</figcaption>
                 <img src="/group-i-nif-cluster.jpg" alt="Group I nif-cluster reference gene maps" />
               </figure>
+              <figure className="cluster-reference-figure">
+                <figcaption>Typical gene organization of Group II <em>nif</em>-clusters.</figcaption>
+                <img src="/group-ii-nif-cluster.png" alt="Group II nif-cluster reference gene maps" />
+              </figure>
               <p>
-                Compare Nif-Finder GenBank cluster regions with clinker. For Group I nif, the dg5 and ATCC29413
-                teaching clusters are added automatically; uploaded regions are compared against those references.
+                Compare Nif-Finder GenBank cluster regions with clinker. For Group I and Group II nif, teaching
+                clusters are added automatically; uploaded regions are compared against those references.
               </p>
 
               {clusterResult?.error ? (
