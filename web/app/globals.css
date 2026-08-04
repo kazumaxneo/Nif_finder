@@ -694,8 +694,25 @@ input:focus {
   opacity: 0.7;
 }
 
+.run-button.running {
+  animation: runningPulse 2.4s ease-in-out infinite;
+  opacity: 0.92;
+}
+
 .run-button:hover:not(:disabled) {
   background: #d7dbe0;
+}
+
+@keyframes runningPulse {
+  0%,
+  100% {
+    background: #e5e7eb;
+    box-shadow: 0 0 0 rgba(23, 32, 42, 0);
+  }
+  50% {
+    background: #f3f4f6;
+    box-shadow: 0 0 14px rgba(23, 32, 42, 0.12);
+  }
 }
 
 .results {

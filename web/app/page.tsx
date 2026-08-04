@@ -1424,7 +1424,7 @@ export default function Home() {
           E-value can affect sensitivity; the default is recommended.
         </p>
 
-        <button className="run-button" type="button" onClick={analyze} disabled={loading}>
+        <button className={loading ? "run-button running" : "run-button"} type="button" onClick={analyze} disabled={loading}>
           <Play size={18} aria-hidden />
           {loading ? "Running" : "Run analysis"}
         </button>
@@ -1527,7 +1527,7 @@ export default function Home() {
               </div>
             ) : null}
             <button
-              className="run-button"
+              className={clusterLoading ? "run-button running" : "run-button"}
               type="button"
               onClick={runClusterComparison}
               disabled={clusterLoading || !canRunClusterComparison}
