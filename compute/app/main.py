@@ -429,9 +429,10 @@ def show_only_target_gene_labels_in_clinker_html(html: str) -> str:
         except Exception:
             pass
 
+    html = html.replace("scaleFactor: 30,", "scaleFactor: 45,")
     html = html.replace(
         "gene: {\n        label: {\n          show: false,\n        }\n      },",
-        "gene: {\n        label: {\n          show: true,\n          rotation: 0,\n          position: \"top\",\n          anchor: \"middle\",\n          fontSize: 11,\n        }\n      },",
+        "gene: {\n        label: {\n          show: true,\n          rotation: 45,\n          position: \"top\",\n          anchor: \"start\",\n          fontSize: 10,\n        }\n      },",
     )
     html = html.replace("labelText:t=>t.label||t.uid", 'labelText:t=>t.label||""')
     return html
