@@ -1,6 +1,7 @@
 import base64
 import hashlib
 import hmac
+import json
 import os
 import re
 import shutil
@@ -330,6 +331,112 @@ def validate_cluster_genbank_bytes(name: str, content: str) -> str:
     return content + "\n"
 
 
+def clean_clinker_label(gene: str) -> str:
+    return {
+        "nifP/cysE": "nifP",
+        "nifU_like": "nifU-like",
+        "vnfH/nifH": "vnfH",
+        "vnfE/nifE": "vnfE",
+        "vnfN/nifN": "vnfN",
+        "cnfR/patB": "cnfR",
+        "cnfR/patB_like": "cnfR-like",
+        "modAlike": "modA-like",
+    }.get(gene, gene)
+
+
+def clinker_label_color(gene: str) -> str:
+    if gene in GENE_COLORS:
+        return GENE_COLORS[gene]
+    for source_gene, color in GENE_COLORS.items():
+        if clean_clinker_label(source_gene) == gene:
+            return color
+    return "#8a8f98"
+
+
+def infer_clinker_gene(feature: Any) -> str | None:
+    nif_finder_gene = qualifier_value(feature, "nif_finder_gene")
+    if nif_finder_gene:
+        return nif_finder_gene
+
+    gene = qualifier_value(feature, "gene")
+    if gene and re.match(r"^(nif|vnf|anf|vup|mod|cnfR|fd|fdx|hes)[A-Za-z0-9_-]*$", gene):
+        return gene
+
+    product = qualifier_value(feature, "product") or ""
+    product_match = re.search(r"\b(?:Nif|Vnf|Anf)([A-Za-z0-9]+)\b", product)
+    if product_match:
+        prefix = product[product_match.start():product_match.start() + 3].lower()
+        return f"{prefix}{product_match.group(1)}"
+    if "nitrogenase iron protein" in product.lower():
+        return "nifH"
+    if "nitrogenase molybdenum-iron protein alpha" in product.lower():
+        return "nifD"
+    if "nitrogenase molybdenum-iron protein subunit beta" in product.lower():
+        return "nifK"
+    return None
+
+
+def prepare_clinker_genbank(
+    name: str,
+    content: str,
+    file_index: int,
+) -> tuple[str, list[tuple[str, str, str]]]:
+    genbank = validate_cluster_genbank_bytes(name, content)
+    try:
+        records = list(SeqIO.parse(StringIO(genbank), "genbank"))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=f"Could not parse {name} as GenBank: {exc}") from exc
+    if not records:
+        raise HTTPException(status_code=400, detail=f"No GenBank records were found in {name}.")
+
+    functions: list[tuple[str, str, str]] = []
+    for record_index, record in enumerate(records, start=1):
+        cds_index = 0
+        for feature in record.features:
+            if feature.type != "CDS" or feature.location is None:
+                continue
+            cds_index += 1
+            inferred_gene = infer_clinker_gene(feature)
+            if not inferred_gene:
+                continue
+            display_gene = clean_clinker_label(inferred_gene)
+            clinker_id = f"nf_{file_index}_{record_index}_{cds_index}_{re.sub(r'[^A-Za-z0-9_.-]+', '_', display_gene)}"
+            feature.qualifiers["nf_clinker_id"] = [clinker_id]
+            feature.qualifiers["nf_clinker_label"] = [display_gene]
+            feature.qualifiers["protein_id"] = [display_gene]
+            feature.qualifiers["locus_tag"] = [display_gene]
+            feature.qualifiers["gene"] = [display_gene]
+            feature.qualifiers["label"] = [display_gene]
+            functions.append((clinker_id, display_gene, clinker_label_color(display_gene)))
+
+    output = StringIO()
+    SeqIO.write(records, output, "genbank")
+    return output.getvalue(), functions
+
+
+def show_only_target_gene_labels_in_clinker_html(html: str) -> str:
+    match = re.search(r"const data=(.*?);function serialise", html, flags=re.S)
+    if match:
+        try:
+            data = json.loads(match.group(1))
+            for cluster in data.get("clusters", []):
+                for locus in cluster.get("loci", []):
+                    for gene in locus.get("genes", []):
+                        names = gene.get("names", {})
+                        gene["label"] = names.get("nf_clinker_label", "")
+            data_json = json.dumps(data, separators=(",", ":"))
+            html = f"{html[:match.start(1)]}{data_json}{html[match.end(1):]}"
+        except Exception:
+            pass
+
+    html = html.replace(
+        "gene: {\n        label: {\n          show: false,\n        }\n      },",
+        "gene: {\n        label: {\n          show: true,\n          rotation: 0,\n          position: \"top\",\n          anchor: \"middle\",\n          fontSize: 11,\n        }\n      },",
+    )
+    html = html.replace("labelText:t=>t.label||t.uid", 'labelText:t=>t.label||""')
+    return html
+
+
 def genbank_record_to_text(record: Any) -> str:
     output = StringIO()
     SeqIO.write([record], output, "genbank")
@@ -432,6 +539,7 @@ def run_clinker(group: str, user_regions: list[ClusterRegion], selected_template
     with tempfile.TemporaryDirectory(prefix="nif-finder-clinker-") as tmp:
         tmp_dir = Path(tmp)
         input_paths: list[Path] = []
+        clinker_functions: list[tuple[str, str, str]] = []
         for index, region in enumerate(regions, start=1):
             if region.lengthBp > MAX_CLUSTER_REGION_BP:
                 raise HTTPException(
@@ -439,11 +547,27 @@ def run_clinker(group: str, user_regions: list[ClusterRegion], selected_template
                     detail=f"{region.label} exceeds the {MAX_CLUSTER_REGION_BP:,} bp comparison limit.",
                 )
             file_path = tmp_dir / f"{index:02d}_{sanitize_cluster_filename(region.fileName)}"
-            file_path.write_text(validate_cluster_genbank_bytes(region.fileName, region.content), encoding="utf-8")
+            clinker_genbank, region_functions = prepare_clinker_genbank(region.fileName, region.content, index)
+            file_path.write_text(clinker_genbank, encoding="utf-8")
+            clinker_functions.extend(region_functions)
             input_paths.append(file_path)
 
         plot_path = tmp_dir / "nif_cluster_comparison.html"
         alignment_path = tmp_dir / "nif_cluster_comparison_alignments.csv"
+        gene_functions_path = tmp_dir / "nif_finder_gene_functions.csv"
+        colour_map_path = tmp_dir / "nif_finder_colour_map.csv"
+        if clinker_functions:
+            gene_functions_path.write_text(
+                "".join(f"{gene_id},{label}\n" for gene_id, label, _color in clinker_functions),
+                encoding="utf-8",
+            )
+            seen_colours: dict[str, str] = {}
+            for _gene_id, label, color in clinker_functions:
+                seen_colours.setdefault(label, color)
+            colour_map_path.write_text(
+                "".join(f"{label},{color}\n" for label, color in seen_colours.items()),
+                encoding="utf-8",
+            )
         command = [
             clinker_bin,
             *(str(path) for path in input_paths),
@@ -457,6 +581,8 @@ def run_clinker(group: str, user_regions: list[ClusterRegion], selected_template
             "1",
             "-f",
         ]
+        if clinker_functions:
+            command.extend(["-gf", str(gene_functions_path), "-cm", str(colour_map_path)])
         try:
             completed = subprocess.run(
                 command,
@@ -477,7 +603,7 @@ def run_clinker(group: str, user_regions: list[ClusterRegion], selected_template
             raise HTTPException(status_code=500, detail=output or "clinker did not produce an HTML plot.")
 
         return ClusterCompareResponse(
-            html=plot_path.read_text(encoding="utf-8"),
+            html=show_only_target_gene_labels_in_clinker_html(plot_path.read_text(encoding="utf-8")),
             plotFilename="nif_cluster_comparison.html",
             alignmentCsv=alignment_path.read_text(encoding="utf-8") if alignment_path.is_file() else None,
             warnings=warnings,
