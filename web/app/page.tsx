@@ -212,14 +212,6 @@ const cyanobacterialFigures = [
     ),
   },
   {
-    id: "figure7",
-    src: "/figures/Figure7.png",
-    pdf: "/figures/Figure7.pdf",
-    downloadName: "Figure7.pdf",
-    alt: "Figure 7 high-resolution preview",
-    caption: <>Fig. 7. Metagenomic profiling of cyanobacteria at the genus level across diverse environments.</>,
-  },
-  {
     id: "supplementary-figure12",
     src: "/figures/Supplementary_Figure12.png",
     pdf: "/figures/Supplementary_Figure12.pdf",
