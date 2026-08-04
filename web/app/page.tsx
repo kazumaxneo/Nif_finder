@@ -1466,7 +1466,6 @@ export default function Home() {
 
         {activeTab === "compare" ? (
           <div className="cluster-controls">
-            <div className="section-title">nif-cluster comparison</div>
             <label className="field compact-field cluster-group-field">
               Comparison group
               <select value={clusterGroup} onChange={(event) => changeClusterGroup(event.target.value as "groupI" | "groupII")}>
@@ -1557,7 +1556,7 @@ export default function Home() {
               </div>
             ) : null}
             <button
-              className={clusterLoading ? "run-button running" : "run-button"}
+              className={clusterLoading ? "run-button cluster-run-button running" : "run-button cluster-run-button"}
               type="button"
               onClick={runClusterComparison}
               disabled={clusterLoading || !canRunClusterComparison}
@@ -1800,7 +1799,6 @@ export default function Home() {
         >
           {activeTab === "compare" ? (
             <article className="manual-body cluster-comparison-page">
-              <h2>nif-cluster comparison</h2>
               <p>
                 Compare Nif-Finder GenBank cluster regions with clinker. For Group I and Group II nif, teaching
                 clusters are added automatically; uploaded regions are compared against those references.

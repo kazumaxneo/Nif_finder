@@ -582,6 +582,12 @@ input:focus {
   justify-self: flex-start;
 }
 
+.cluster-run-button {
+  min-width: 0;
+  padding-inline: 13px;
+  width: fit-content;
+}
+
 .compact-notice {
   align-items: flex-start;
   padding: 12px;
