@@ -583,9 +583,13 @@ input:focus {
 }
 
 .cluster-run-button {
+  align-self: flex-start;
+  flex: 0 0 auto;
+  justify-self: flex-start;
+  max-width: max-content;
   min-width: 0;
   padding-inline: 13px;
-  width: fit-content;
+  width: max-content;
 }
 
 .compact-notice {
