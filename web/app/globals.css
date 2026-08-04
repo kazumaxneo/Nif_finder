@@ -499,33 +499,6 @@ input:focus {
   max-width: 650px;
 }
 
-.cluster-reference-figure {
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  margin: 0;
-  overflow: auto;
-  padding: 8px;
-  width: min(960px, 100%);
-}
-
-.cluster-reference-figure + .cluster-reference-figure {
-  margin-top: 14px;
-}
-
-.cluster-reference-figure figcaption {
-  color: var(--text);
-  font-size: 14px;
-  font-weight: 700;
-  margin: 0 0 8px;
-}
-
-.cluster-reference-figure img {
-  display: block;
-  height: auto;
-  min-width: 760px;
-  width: 100%;
-}
-
 .cluster-reference-options {
   display: grid;
   gap: 7px;

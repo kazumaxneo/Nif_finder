@@ -1686,14 +1686,6 @@ export default function Home() {
           {activeTab === "compare" ? (
             <article className="manual-body cluster-comparison-page">
               <h2>nif-cluster comparison</h2>
-              <figure className="cluster-reference-figure">
-                <figcaption>Typical gene organization of Group I <em>nif</em>-clusters.</figcaption>
-                <img src="/group-i-nif-cluster.jpg" alt="Group I nif-cluster reference gene maps" />
-              </figure>
-              <figure className="cluster-reference-figure">
-                <figcaption>Typical gene organization of Group II <em>nif</em>-clusters.</figcaption>
-                <img src="/group-ii-nif-cluster.png" alt="Group II nif-cluster reference gene maps" />
-              </figure>
               <p>
                 Compare Nif-Finder GenBank cluster regions with clinker. For Group I and Group II nif, teaching
                 clusters are added automatically; uploaded regions are compared against those references.
