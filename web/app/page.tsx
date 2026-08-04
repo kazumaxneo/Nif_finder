@@ -134,6 +134,30 @@ const vnfVupModelGenes = [
 ];
 const defaultAdditionalNifModelGenes = additionalNifModelGenes.map((gene) => gene.id);
 const defaultVnfVupModelGenes = vnfVupModelGenes.map((gene) => gene.id);
+const additionalNifSummaryGenesByModel: Record<string, string[]> = {
+  nifZ: ["nifZ"],
+  nifX: ["nifX"],
+  nifP: ["nifP/cysE"],
+  nifT: ["nifT"],
+  nifV: ["nifV"],
+  nifS: ["nifS"],
+  nifU: ["nifU", "nifU_like"],
+  modA: ["modAlike"],
+  modB: ["modB/vupB"],
+  modC: ["modC/vupC"],
+  "cnfR-patB": ["cnfR/patB", "cnfR/patB_like"],
+};
+const vnfVupSummaryGenesByModel: Record<string, string[]> = {
+  vnfH: ["vnfH/nifH"],
+  vnfD: ["vnfD"],
+  vnfK: ["vnfK"],
+  vnfE: ["vnfE/nifE"],
+  vnfN: ["vnfN/nifN"],
+  vnfG: ["vnfG", "vnfDG"],
+  vupA: ["vupA/modA"],
+  vupB: ["vupB/modB"],
+  vupC: ["vupC/modC"],
+};
 const maxJobs = 4;
 const maxCpu = 12;
 const maxContextPaddingKb = 30;
@@ -388,8 +412,22 @@ export default function Home() {
   const displayedRecords = showOnlyNifHits
     ? records.filter((record) => targetGenes.includes(record.prediction))
     : records;
+  const summaryGenes = useMemo(() => {
+    const genes = [...coreModelGenes];
+    if (includeAdditionalNif) {
+      selectedAdditionalNifGenes.forEach((gene) => {
+        genes.push(...(additionalNifSummaryGenesByModel[gene] ?? []));
+      });
+    }
+    if (includeVnfVup) {
+      selectedVnfVupGenes.forEach((gene) => {
+        genes.push(...(vnfVupSummaryGenesByModel[gene] ?? []));
+      });
+    }
+    return Array.from(new Set(genes));
+  }, [includeAdditionalNif, includeVnfVup, selectedAdditionalNifGenes, selectedVnfVupGenes]);
   const targetSummary = useMemo(() => {
-    return targetGenes.map((gene) => {
+    return summaryGenes.map((gene) => {
       const geneRecords = records.filter((record) => record.prediction === gene);
       const full = geneRecords.filter((record) => record.completeness === "Full").length;
       const operon = geneRecords.filter((record) => record.completeness === "Full_operon").length;
@@ -403,7 +441,7 @@ export default function Home() {
         incomplete,
       };
     });
-  }, [records]);
+  }, [records, summaryGenes]);
   const totalTargetCopies = targetSummary.reduce((sum, row) => sum + row.total, 0);
   const taxonomyFamilyOptions = useMemo(() => taxonomyOptions(taxonomyRows, (row) => row.family), []);
   const taxonomyGenusOptions = useMemo(() => taxonomyOptions(taxonomyRows, (row) => row.genus), []);
