@@ -1078,7 +1078,6 @@ export default function Home() {
       <header className="top-menu">
         <div className="top-menu-brand-row" aria-label="Nif-Finder site header">
           <span className="top-menu-name">Nif-Finder</span>
-          <span className="top-menu-title">Nitrogen fixation gene finder</span>
         </div>
         <nav className="top-tabs" aria-label="Nif-Finder sections">
           {navigationTabs.map(({ id, label, icon: Icon }) => (
@@ -2104,7 +2103,7 @@ export default function Home() {
             <img src={expandedFigure.src} alt={expandedFigure.alt} />
             <div className="figure-lightbox-footer">
               <p>{expandedFigure.caption}</p>
-              <a className="ghost-button" href={expandedFigure.pdf} download={expandedFigure.downloadName}>
+              <a className="ghost-button figure-download-button" href={expandedFigure.pdf} download={expandedFigure.downloadName}>
                 <Download size={16} aria-hidden />
                 Download PDF
               </a>

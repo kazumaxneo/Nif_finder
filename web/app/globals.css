@@ -185,7 +185,7 @@ textarea {
 }
 
 .top-menu-name {
-  color: #2fa35b;
+  color: #17202a;
   font-size: 20px;
   font-weight: 700;
 }
@@ -889,8 +889,15 @@ input:focus {
 }
 
 .figure-download-button {
+  border-color: transparent;
   margin: 12px 2px 0;
   width: fit-content;
+}
+
+.figure-download-button:hover {
+  background: #f8fafb;
+  border-color: transparent;
+  text-decoration: none;
 }
 
 .figure-lightbox {
