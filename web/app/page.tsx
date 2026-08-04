@@ -943,19 +943,21 @@ export default function Home() {
     return `slot_${slotIndex + 1}_${fileName.replace(/[^\w.-]+/g, "_")}`;
   }
 
-  async function loadClusterFile(event: ChangeEvent<HTMLInputElement>, slotIndex: number) {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  async function loadClusterContent(slotIndex: number, fileName: string, content: string, id: string) {
     setClusterLoading(true);
     setClusterResult(null);
+    const uploadName = clusterUploadName(slotIndex, fileName);
+    const previousUploadNames = clusterFiles
+      .filter((item) => item.slotIndex === slotIndex)
+      .map((item) => item.uploadName);
+    const replacedUploadNames = new Set([...previousUploadNames, uploadName]);
     try {
-      const uploadName = clusterUploadName(slotIndex, file.name);
       const loaded: ClusterUploadFile = {
-        id: stableFileId(file, slotIndex),
+        id,
         slotIndex,
-        name: file.name,
+        name: fileName,
         uploadName,
-        content: await file.text(),
+        content,
       };
       const res = await fetch("/api/cluster-regions", {
         method: "POST",
@@ -967,44 +969,80 @@ export default function Home() {
       const data = await readJsonResponse<ClusterRegionResponse>(res);
       if (!res.ok || data.error) {
         setClusterFiles((current) => current.filter((item) => item.slotIndex !== slotIndex));
-        setClusterRegions((current) => current.filter((region) => region.fileName !== uploadName));
+        setClusterRegions((current) => current.filter((region) => !replacedUploadNames.has(region.fileName)));
         setSelectedClusterRegionIds((current) => {
           const next = { ...current };
-          delete next[uploadName];
+          for (const removed of replacedUploadNames) {
+            delete next[removed];
+          }
           return next;
         });
         setClusterSlotWarnings((current) => ({
           ...current,
           [slotIndex]: [data.error ?? "Could not inspect GenBank regions.", data.detail ?? ""].filter(Boolean),
         }));
-        return;
+        return false;
       }
       const regions = data.regions ?? [];
       setClusterFiles((current) =>
         [...current.filter((item) => item.slotIndex !== slotIndex), loaded].sort((a, b) => a.slotIndex - b.slotIndex),
       );
       setClusterRegions((current) => [
-        ...current.filter((region) => region.fileName !== uploadName),
+        ...current.filter((region) => !replacedUploadNames.has(region.fileName)),
         ...regions,
       ]);
       setSelectedClusterRegionIds((current) => {
         const next = { ...current };
-        delete next[uploadName];
-        if (regions.length === 1) {
+        for (const removed of replacedUploadNames) {
+          delete next[removed];
+        }
+        if (regions.length >= 1) {
           next[uploadName] = regions[0].id;
         }
         return next;
       });
       setClusterSlotWarnings((current) => ({ ...current, [slotIndex]: data.warnings ?? [] }));
+      return true;
     } catch (error) {
       setClusterFiles((current) => current.filter((item) => item.slotIndex !== slotIndex));
+      setClusterRegions((current) => current.filter((region) => !replacedUploadNames.has(region.fileName)));
+      setSelectedClusterRegionIds((current) => {
+        const next = { ...current };
+        for (const removed of replacedUploadNames) {
+          delete next[removed];
+        }
+        return next;
+      });
       setClusterSlotWarnings((current) => ({
         ...current,
         [slotIndex]: [error instanceof Error ? error.message : "Could not read GenBank file."],
       }));
+      return false;
     } finally {
       setClusterLoading(false);
+    }
+  }
+
+  async function loadClusterFile(event: ChangeEvent<HTMLInputElement>, slotIndex: number) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      await loadClusterContent(slotIndex, file.name, await file.text(), stableFileId(file, slotIndex));
+    } finally {
       event.target.value = "";
+    }
+  }
+
+  async function sendGeneratedGenbankToClusterComparison(content: string, fileName: string) {
+    const slotIndex = clusterSlots.find((slot) => !clusterFiles.some((file) => file.slotIndex === slot)) ?? 0;
+    const loaded = await loadClusterContent(
+      slotIndex,
+      fileName,
+      content,
+      `generated-${slotIndex}-${fileName}-${content.length}`,
+    );
+    if (loaded) {
+      setActiveTab("compare");
     }
   }
 
@@ -1606,6 +1644,20 @@ export default function Home() {
                       <Download size={16} aria-hidden />
                       Download nif/vnf-related region (gbk)
                     </button>
+                    <button
+                      className="ghost-button"
+                      type="button"
+                      onClick={() =>
+                        sendGeneratedGenbankToClusterComparison(
+                          response.genomicContextGenbank ?? "",
+                          response.genomicContextGenbankFilename || "nif_finder_local_context.gbk",
+                        )
+                      }
+                      disabled={clusterLoading}
+                    >
+                      <GitCompareArrows size={16} aria-hidden />
+                      Send to nif-cluster comparison
+                    </button>
                   </div>
                 ) : null}
               </div>
@@ -1656,6 +1708,22 @@ export default function Home() {
                 <button className="ghost-button" type="button" onClick={downloadVnfContextGenbank}>
                   <Download size={16} aria-hidden />
                   Download vnf region (gbk)
+                </button>
+              ) : null}
+              {response?.vnfContextGenbank ? (
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={() =>
+                    sendGeneratedGenbankToClusterComparison(
+                      response.vnfContextGenbank ?? "",
+                      response.vnfContextGenbankFilename || "nif_finder_vnf_context.gbk",
+                    )
+                  }
+                  disabled={clusterLoading}
+                >
+                  <GitCompareArrows size={16} aria-hidden />
+                  Send vnf region to comparison
                 </button>
               ) : null}
               <button className="ghost-button" type="button" onClick={downloadZip} disabled={records.length === 0}>
