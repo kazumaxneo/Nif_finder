@@ -1878,7 +1878,7 @@ export default function Home() {
 
                 <section className="taxonomy-table-wrap">
                   <div className="taxonomy-table-head">
-                    <p>Compact taxonomy columns plus original gene-level columns from S1.</p>
+                    <p>Presence/absence pattern of nifHDKENB from 586 cyanobacterial genomes</p>
                     <span>{filteredTaxonomyRows.length.toLocaleString()} / {taxonomyRows.length.toLocaleString()} rows</span>
                   </div>
                   <div className="taxonomy-scroll">
