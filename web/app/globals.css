@@ -674,17 +674,19 @@ input:focus {
 .advanced-settings {
   align-items: center;
   align-self: flex-start;
+  flex-direction: column;
   gap: 8px 14px;
 }
 
 .advanced-settings .section-title {
-  align-self: center;
-  flex: 1 0 100%;
+  align-self: flex-start;
+  flex: 0 0 auto;
   margin-right: 0;
 }
 
 .advanced-settings .toggle-row {
-  margin-top: 21px;
+  align-self: flex-start;
+  margin-top: 0;
 }
 
 .settings label.toggle-row {

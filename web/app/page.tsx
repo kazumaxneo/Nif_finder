@@ -1282,7 +1282,7 @@ export default function Home() {
                 checked={skipAccessoryOnlyLocalContext}
                 onChange={(event) => setSkipAccessoryOnlyLocalContext(event.target.checked)}
               />
-              Hide local maps with only nifP/mod/vup hits
+              Hide maps with only nifP/mod/vup hits
             </label>
           </div>
         </div>
