@@ -1807,7 +1807,6 @@ export default function Home() {
 
               <div className="taxonomy-layout">
                 <aside className="taxonomy-sidebar" aria-label="Browse table filters">
-                  <h2>Browse table</h2>
                   <label>
                     Keyword
                     <input

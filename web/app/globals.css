@@ -1041,12 +1041,6 @@ input:focus {
   top: 12px;
 }
 
-.taxonomy-sidebar h2 {
-  font-size: 17px;
-  line-height: 1.2;
-  margin: 0;
-}
-
 .taxonomy-sidebar label {
   color: #303b46;
   display: flex;
