@@ -1,7 +1,7 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import { AlertCircle, BookOpen, Download, FileText, FileUp, GitCompareArrows, HomeIcon, Info, Play, TableProperties } from "lucide-react";
+import { AlertCircle, BookOpen, Download, FileText, FileUp, GitCompareArrows, HomeIcon, Info, Play, TableProperties, X } from "lucide-react";
 import {
   nifCleavageGenes,
   nifCopyGenes,
@@ -162,6 +162,63 @@ const demoClusterFigures: Record<string, { src: string; title: string; caption: 
   },
 };
 
+const cyanobacterialFigures = [
+  {
+    id: "figure2",
+    src: "/figures/Figure2.png",
+    pdf: "/figures/Figure2.pdf",
+    downloadName: "Figure2.pdf",
+    alt: "Figure 2 high-resolution preview",
+    caption: (
+      <>
+        Fig. 2. Maximum-likelihood (ML) phylogeny of cyanobacterial lineages showing the presence or absence
+        of <em>nifHDKENB</em>.
+      </>
+    ),
+  },
+  {
+    id: "figure3",
+    src: "/figures/Figure3.png",
+    pdf: "/figures/Figure3.pdf",
+    downloadName: "Figure3.pdf",
+    alt: "Figure 3 high-resolution preview",
+    caption: <>Fig. 3. Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes.</>,
+  },
+  {
+    id: "figure4",
+    src: "/figures/Figure4.png",
+    pdf: "/figures/Figure4.pdf",
+    downloadName: "Figure4.pdf",
+    alt: "Figure 4 high-resolution preview",
+    caption: (
+      <>
+        Fig. 4. Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria.
+      </>
+    ),
+  },
+  {
+    id: "figure7",
+    src: "/figures/Figure7.png",
+    pdf: "/figures/Figure7.pdf",
+    downloadName: "Figure7.pdf",
+    alt: "Figure 7 high-resolution preview",
+    caption: <>Fig. 7. Metagenomic profiling of cyanobacteria at the genus level across diverse environments.</>,
+  },
+  {
+    id: "supplementary-figure12",
+    src: "/figures/Supplementary_Figure12.png",
+    pdf: "/figures/Supplementary_Figure12.pdf",
+    downloadName: "Supplementary_Figure12.pdf",
+    alt: "Supplementary Figure 12 high-resolution preview",
+    caption: (
+      <>
+        Supplementary Figure S12. Genus-level cyanobacterial phylogenetic tree showing the distribution of
+        Groups I and II <em>nif</em> carrying lineages.
+      </>
+    ),
+  },
+];
+
 const figure1Caption = (
   <>
     Figure 1. 2D Similarity Plot of homology search for Nif proteins encoded by <em>nifHDKENB</em>, supported
@@ -317,6 +374,7 @@ export default function Home() {
   const [taxonomyDiazotrophy, setTaxonomyDiazotrophy] = useState("");
   const [taxonomyClass, setTaxonomyClass] = useState("");
   const [taxonomyMorphology, setTaxonomyMorphology] = useState("");
+  const [expandedFigure, setExpandedFigure] = useState<(typeof cyanobacterialFigures)[number] | null>(null);
 
   const records = response?.records ?? [];
   const displayedRecords = showOnlyNifHits
@@ -379,6 +437,22 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+  useEffect(() => {
+    if (!expandedFigure) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExpandedFigure(null);
+      }
+    };
+
+    document.body.classList.add("modal-open");
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.classList.remove("modal-open");
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [expandedFigure]);
   const demoClusterFigure = records.length > 0 ? demoClusterFigures[submittedExampleDataset] : undefined;
   const clusterSlots = useMemo(() => Array.from({ length: maxClusterUploads }, (_, index) => index), []);
   const clusterWarnings = useMemo(() => Object.values(clusterSlotWarnings).flat(), [clusterSlotWarnings]);
@@ -1704,57 +1778,23 @@ export default function Home() {
                 <p>Now published in Scientific Reports.</p>
               </div>
 
-              <figure className="figure-two-preview">
-                <a href="/figures/Figure2.pdf" download="Figure2.pdf">
-                  <img src="/figures/Figure2.png" alt="Figure 2 high-resolution preview" />
-                </a>
-              </figure>
-
-              <p className="figure-caption">
-                Fig. 2. Maximum-likelihood (ML) phylogeny of cyanobacterial lineages showing the presence or absence
-                of <em>nifHDKENB</em>.
-              </p>
-
-              <figure className="figure-two-preview">
-                <a href="/figures/Figure3.pdf" download="Figure3.pdf">
-                  <img src="/figures/Figure3.png" alt="Figure 3 high-resolution preview" />
-                </a>
-              </figure>
-
-              <p className="figure-caption">
-                Fig. 3. Maximum-likelihood phylogenetic tree of Group I-IV Nif, Vnf, and Anf genes.
-              </p>
-
-              <figure className="figure-two-preview">
-                <a href="/figures/Figure4.pdf" download="Figure4.pdf">
-                  <img src="/figures/Figure4.png" alt="Figure 4 high-resolution preview" />
-                </a>
-              </figure>
-
-              <p className="figure-caption">
-                Fig. 4. Comparison of Groups I and II <em>nif</em> clusters in cyanobacteria.
-              </p>
-
-              <figure className="figure-two-preview">
-                <a href="/figures/Figure7.pdf" download="Figure7.pdf">
-                  <img src="/figures/Figure7.png" alt="Figure 7 high-resolution preview" />
-                </a>
-              </figure>
-
-              <p className="figure-caption">
-                Fig. 7. Metagenomic profiling of cyanobacteria at the genus level across diverse environments.
-              </p>
-
-              <figure className="figure-two-preview">
-                <a href="/figures/Supplementary_Figure12.pdf" download="Supplementary_Figure12.pdf">
-                  <img src="/figures/Supplementary_Figure12.png" alt="Supplementary Figure 12 high-resolution preview" />
-                </a>
-              </figure>
-
-              <p className="figure-caption">
-                Supplementary Figure S12. Genus-level cyanobacterial phylogenetic tree showing the distribution of
-                Groups I and II <em>nif</em> carrying lineages.
-              </p>
+              {cyanobacterialFigures.map((figure) => (
+                <figure className="figure-two-preview" key={figure.id}>
+                  <button
+                    className="figure-preview-button"
+                    type="button"
+                    onClick={() => setExpandedFigure(figure)}
+                    aria-label={`Open enlarged ${figure.downloadName.replace(".pdf", "")}`}
+                  >
+                    <img src={figure.src} alt={figure.alt} />
+                  </button>
+                  <figcaption className="figure-caption">{figure.caption}</figcaption>
+                  <a className="ghost-button figure-download-button" href={figure.pdf} download={figure.downloadName}>
+                    <Download size={16} aria-hidden />
+                    Download PDF
+                  </a>
+                </figure>
+              ))}
             </article>
           ) : null}
 
@@ -2050,6 +2090,28 @@ export default function Home() {
           ) : null}
         </section>
       )}
+      {expandedFigure ? (
+        <div className="figure-lightbox" role="dialog" aria-modal="true" aria-label="Expanded manuscript figure" onClick={() => setExpandedFigure(null)}>
+          <div className="figure-lightbox-panel" onClick={(event) => event.stopPropagation()}>
+            <button
+              className="figure-lightbox-close"
+              type="button"
+              onClick={() => setExpandedFigure(null)}
+              aria-label="Close expanded figure"
+            >
+              <X size={22} aria-hidden />
+            </button>
+            <img src={expandedFigure.src} alt={expandedFigure.alt} />
+            <div className="figure-lightbox-footer">
+              <p>{expandedFigure.caption}</p>
+              <a className="ghost-button" href={expandedFigure.pdf} download={expandedFigure.downloadName}>
+                <Download size={16} aria-hidden />
+                Download PDF
+              </a>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }
