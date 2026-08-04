@@ -430,6 +430,7 @@ def show_only_target_gene_labels_in_clinker_html(html: str) -> str:
             pass
 
     html = html.replace("scaleFactor: 30,", "scaleFactor: 45,")
+    html = html.replace("spacing: 50,", "spacing: 100,")
     html = html.replace(
         "gene: {\n        label: {\n          show: false,\n        }\n      },",
         "gene: {\n        label: {\n          show: true,\n          rotation: 45,\n          position: \"top\",\n          anchor: \"start\",\n          fontSize: 10,\n        }\n      },",
