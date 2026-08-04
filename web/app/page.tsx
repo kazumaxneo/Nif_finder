@@ -1,7 +1,22 @@
 "use client";
 
 import { ChangeEvent, Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
-import { AlertCircle, BookOpen, Download, FileText, FileUp, GitCompareArrows, HomeIcon, Info, Play, TableProperties, X } from "lucide-react";
+import {
+  AlertCircle,
+  BookOpen,
+  Download,
+  FileText,
+  FileUp,
+  GitCompareArrows,
+  HomeIcon,
+  Info,
+  Play,
+  RotateCcw,
+  TableProperties,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
 import {
   nifCleavageGenes,
   nifCopyGenes,
@@ -375,6 +390,7 @@ export default function Home() {
   const [taxonomyClass, setTaxonomyClass] = useState("");
   const [taxonomyMorphology, setTaxonomyMorphology] = useState("");
   const [expandedFigure, setExpandedFigure] = useState<(typeof cyanobacterialFigures)[number] | null>(null);
+  const [figureZoom, setFigureZoom] = useState(1);
 
   const records = response?.records ?? [];
   const displayedRecords = showOnlyNifHits
@@ -440,6 +456,7 @@ export default function Home() {
   useEffect(() => {
     if (!expandedFigure) return;
 
+    setFigureZoom(1);
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setExpandedFigure(null);
@@ -1774,7 +1791,10 @@ export default function Home() {
                   <button
                     className="figure-preview-button"
                     type="button"
-                    onClick={() => setExpandedFigure(figure)}
+                    onClick={() => {
+                      setFigureZoom(1);
+                      setExpandedFigure(figure);
+                    }}
                     aria-label={`Open enlarged ${figure.downloadName.replace(".pdf", "")}`}
                   >
                     <img src={figure.src} alt={figure.alt} />
@@ -2091,7 +2111,40 @@ export default function Home() {
             >
               <X size={22} aria-hidden />
             </button>
-            <img src={expandedFigure.src} alt={expandedFigure.alt} />
+            <div className="figure-lightbox-controls" aria-label="Figure zoom controls">
+              <button
+                className="figure-lightbox-control"
+                type="button"
+                onClick={() => setFigureZoom((zoom) => Math.max(0.75, zoom - 0.25))}
+                disabled={figureZoom <= 0.75}
+                aria-label="Zoom out"
+                title="Zoom out"
+              >
+                <ZoomOut size={17} aria-hidden />
+              </button>
+              <button
+                className="figure-lightbox-control"
+                type="button"
+                onClick={() => setFigureZoom(1)}
+                aria-label="Reset zoom"
+                title="Reset zoom"
+              >
+                <RotateCcw size={16} aria-hidden />
+              </button>
+              <button
+                className="figure-lightbox-control"
+                type="button"
+                onClick={() => setFigureZoom((zoom) => Math.min(3, zoom + 0.25))}
+                disabled={figureZoom >= 3}
+                aria-label="Zoom in"
+                title="Zoom in"
+              >
+                <ZoomIn size={17} aria-hidden />
+              </button>
+            </div>
+            <div className="figure-lightbox-image-scroll">
+              <img src={expandedFigure.src} alt={expandedFigure.alt} style={{ width: `${figureZoom * 100}%` }} />
+            </div>
             <div className="figure-lightbox-footer">
               <p>{expandedFigure.caption}</p>
               <a className="ghost-button figure-download-button" href={expandedFigure.pdf} download={expandedFigure.downloadName}>
