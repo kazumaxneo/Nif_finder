@@ -370,8 +370,9 @@ input:focus {
   align-items: flex-start;
   border-top: 1px solid var(--line);
   display: flex;
+  flex-direction: column;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 14px;
   padding-top: 16px;
 }
 
